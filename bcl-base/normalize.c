@@ -10,7 +10,7 @@
 #include <bcl.h>
 
 void  
-process(int num, char* ims_name, char* imd_name)
+process(int min, int max, char* ims_name, char* imd_name)
 {
   pnm ims = pnm_load(ims_name);
   int rows = pnm_get_height(ims); 
@@ -18,32 +18,31 @@ process(int num, char* ims_name, char* imd_name)
   
   pnm imd = pnm_new(cols, rows, PnmRawPpm);
 
-  unsigned short* channel = (unsigned short *)malloc(rows * cols * sizeof(unsigned short));
-  pnm_get_channel(ims, channel, num);
-  pnm_set_channel(imd, channel, 0);
-  pnm_set_channel(imd, channel, 1);
-  pnm_set_channel(imd, channel, 2);
+  // TO DO
 
   pnm_save(imd, PnmRawPpm, imd_name);
+  
   pnm_free(imd);
+  pnm_free(ims);
 }
 
 void 
 usage (char *s){
-  fprintf(stderr, "Usage: %s <num> <ims> <imd>\n", s);
+  fprintf(stderr, "Usage: %s <min> <max> <ims> <imd>\n", s);
   exit(EXIT_FAILURE);
 }
 
-#define PARAM 3
+#define PARAM 4
 int 
 main(int argc, char *argv[]){
   if (argc != PARAM+1) usage(argv[0]);
   
-  int num = atoi(argv[1]);
-  char *ims_name = argv[2];
-  char *imd_name = argv[3];
+  int min = atoi(argv[1]);
+  int max = atoi(argv[2]);
+  char *ims_name = argv[3];
+  char *imd_name = argv[4];
   
-  process(num, ims_name, imd_name);
+  process(min, max, ims_name, imd_name);
   
   return EXIT_SUCCESS;
 }

@@ -7,7 +7,9 @@ BIN=\
 	print-ppm\
 	test1\
 	extract-subimage\
-	extract-channel	
+	extract-channel\
+	gray2color\
+	color2mean
 
 all: $(BIN)
 
