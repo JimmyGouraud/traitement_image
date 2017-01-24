@@ -9,7 +9,8 @@ BIN=\
 	extract-subimage\
 	extract-channel\
 	gray2color\
-	color2mean
+	color2mean\
+	normalize
 
 all: $(BIN)
 

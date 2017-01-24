@@ -16,22 +16,26 @@ process(int i0, int j0, int rows, int cols, char* ims_name, char* imd_name){
 
   unsigned short* pims = pnm_get_image(ims);
   unsigned short* pimd = pnm_get_image(imd);
-
+  unsigned short* red;
+  unsigned short* green;
+  unsigned short* blue;
   for(int i = 0; i < pnm_get_height(ims); i++){
     for(int j = 0; j < pnm_get_width(ims); j++){
       if (i >= i0 && i < i0+rows && j >= j0 && j < j0+cols)
-	{
-	  unsigned short* red = pims + pnm_offset(ims, i, j);
-	  unsigned short* green = red + 1;
-	  unsigned short* blue = green + 1;
-	  *pimd++ = *red;
-	  *pimd++ = *green;
-	  *pimd++ = *blue;
-	}
+      {
+	red = pims + pnm_offset(ims, i, j);
+	green = red + 1;
+	blue = green + 1;
+	*pimd++ = *red;
+	*pimd++ = *green;
+	*pimd++ = *blue;
+      }
     }    
   }
   
   pnm_save(imd, PnmRawPpm, imd_name);
+
+  pnm_free(ims);
   pnm_free(imd);
 }
 

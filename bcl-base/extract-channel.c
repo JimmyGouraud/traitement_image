@@ -15,7 +15,6 @@ process(int num, char* ims_name, char* imd_name)
   pnm ims = pnm_load(ims_name);
   int rows = pnm_get_height(ims); 
   int cols = pnm_get_width(ims);
-  
   pnm imd = pnm_new(cols, rows, PnmRawPpm);
 
   unsigned short* channel = (unsigned short *)malloc(rows * cols * sizeof(unsigned short));
@@ -25,6 +24,9 @@ process(int num, char* ims_name, char* imd_name)
   pnm_set_channel(imd, channel, 2);
 
   pnm_save(imd, PnmRawPpm, imd_name);
+
+  free(channel);
+  pnm_free(ims);
   pnm_free(imd);
 }
 
