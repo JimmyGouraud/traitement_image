@@ -2,7 +2,7 @@ ROOT=../bcl
 
 CFLAGS=-Wall -Wextra -Werror -std=c99 -I$(ROOT)/include 
 LDFLAGS=-L$(ROOT)/lib
-LDLIBS=-lm -lfftw3 -lbcl
+LDLIBS= -lfftw3 -lm -lbcl
 
 BIN=test-fft
 OBJ=fft.o 
