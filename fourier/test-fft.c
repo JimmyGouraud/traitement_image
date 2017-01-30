@@ -12,6 +12,49 @@
 
 #include "fft.h"
 
+
+/**
+ * @brief create a filename with prefix and name (without the path)
+ * @param char* prefix, the prefix to add to the image file name
+ * @param char* path, the image file name with the path
+ */
+static char* create_filename(char* prefix, char* path)
+{
+  char* origin_name = strrchr(path,'/') + 1;
+  int size = strlen(prefix) + strlen(origin_name) + 1;
+  char* namefile = malloc(size * sizeof(char*));
+  snprintf(namefile, size, "%s%s", prefix, origin_name);
+  
+  return namefile;
+}
+
+/**
+ * @brief recentering the image
+ * @param int rows, the rows image
+ * @param int cols, the cols image
+ * @param pnm ims, the source image
+ */
+static pnm recentering (int rows, int cols, pnm ims)
+{
+  pnm ims_centered = pnm_new(cols, rows, PnmRawPpm);
+  unsigned short value_centered;
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
+      for (int k = 0; k < 3; k++) {
+	value_centered = pnm_get_component(ims, i, j, k);
+	if ((i+j) % 2 != 0){
+	  value_centered *= -1;
+	}
+	pnm_set_component(ims_centered, i, j, k, value_centered);
+      }
+    }
+  }
+  
+  return ims_centered;
+}
+
+
+
 /**
  * @brief test the forward and backward functions
  * @param pnm ims, the source image
@@ -42,11 +85,7 @@ test_for_backward(pnm ims, char* name)
   }
   fftw_backward -= cols * rows;
 
-  char * origin_name = strrchr(name,'/') + 1;
-  int size = strlen(origin_name) + 4;
-  char namefile[size];
-  snprintf(namefile, size, "FB-%s", origin_name);
-
+  char * namefile = create_filename("FB-", name);
   pnm_save(imd, PnmRawPpm, namefile);
 
   free(channel);
@@ -78,10 +117,11 @@ test_reconstruction(pnm ims, char* name)
   
   float *as = malloc(rows * cols * sizeof(float));
   float *ps = malloc(rows * cols * sizeof(float));
-
   freq2spectra(rows, cols, fftw_forward, as, ps);
   spectra2freq(rows, cols, as, ps, fftw_forward);
-
+  free(as);
+  free(ps);
+  
   unsigned short* fftw_backward = backward(rows, cols, fftw_forward);
 
   pnm imd = pnm_new(cols, rows, PnmRawPpm);
@@ -94,24 +134,18 @@ test_reconstruction(pnm ims, char* name)
     }
   }
   fftw_backward -= cols * rows;
-
-  char * origin_name = strrchr(name,'/') + 1;
-  int size = strlen(origin_name) + 9;
-  char namefile[size];
-  snprintf(namefile, size, "FB-ASPS-%s", origin_name);
-
+  
+  char * namefile = create_filename("FB-ASPS-", name);
   pnm_save(imd, PnmRawPpm, namefile);
 
   free(channel);
   free(fftw_forward);
   free(fftw_backward);
   pnm_free(imd);
-  free(as);
-  free(ps);
 
-  printf("%s", name);
   fprintf(stderr, "OK\n");
 }
+
 
 
 /**
@@ -123,8 +157,60 @@ static void
 test_display(pnm ims, char* name)
 {
   fprintf(stderr, "test_display: ");
-  (void)ims;
-  (void)name;
+  int rows = pnm_get_height(ims);
+  int cols = pnm_get_width(ims);
+
+  // Recentrage
+  pnm ims_centered = recentering(cols, rows, ims);
+  (void)ims_centered;
+  unsigned short* channel = malloc(rows * cols * sizeof(unsigned short));
+  pnm_get_channel(ims, channel, 0);
+
+  fftw_complex* fftw_forward = forward(rows, cols, channel);
+  
+  float *as = malloc(rows * cols * sizeof(float));
+  float *ps = malloc(rows * cols * sizeof(float));
+  freq2spectra(rows, cols, fftw_forward, as, ps);
+
+  pnm imd_as = pnm_new(cols, rows, PnmRawPpm);
+  pnm imd_ps = pnm_new(cols, rows, PnmRawPpm);
+
+  // Trouve l'amplitude max
+  float max_amplitude = 0;
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
+      if (max_amplitude < *as) {
+	max_amplitude = *as;
+      }
+      as++;
+    }
+  }
+  as -= rows * cols;
+
+  
+  float as_normalized;
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
+      as_normalized = pow(*as/max_amplitude, 0.15) * 255;
+      for (int k = 0; k < 3; k++) {
+	pnm_set_component(imd_as, i, j, k, as_normalized);
+	pnm_set_component(imd_ps, i, j, k, *ps);
+      }
+      as++;
+      ps++;
+    }
+  }
+  as -= cols * rows;
+  ps -= cols * rows;
+
+  char * namefile_as = create_filename("AS-", name);
+  pnm_save(imd_as, PnmRawPpm, namefile_as);
+  char * namefile_ps = create_filename("PS-", name);
+  pnm_save(imd_ps, PnmRawPpm, namefile_ps);
+
+  free(as);
+  free(ps);
+  
   fprintf(stderr, "OK\n");
 }
 

@@ -9,9 +9,14 @@ fftw_complex
 {
   // 1. Construction image complexe
   fftw_complex* in = fftw_malloc(rows * cols * sizeof(fftw_complex));
+  float value_centered;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
-      *in++ = (double) *gray_img++ + I * 0;
+      	value_centered = 1;
+	if ((i+j) % 2 != 0){
+	  value_centered *= -1;
+	}
+	*in++ = (double) value_centered * (*gray_img++ + I * 0);
     }
   }
   in -= cols * rows;
@@ -39,9 +44,14 @@ unsigned short
   fftw_execute(plan);
 
   unsigned short* gray_img = fftw_malloc(rows * cols * sizeof(unsigned short));
+  float value_centered;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
-      *gray_img++ = (unsigned short) (creal(*out++) / (rows * cols));
+      value_centered = 1;
+      if ((i+j) % 2 != 0){
+	value_centered *= -1;
+      }
+      *gray_img++ = (unsigned short) value_centered * ((creal(*out++) / (rows * cols)));
     }
   }
   gray_img -= cols * rows;
