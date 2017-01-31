@@ -82,8 +82,8 @@ freq2spectra(int rows, int cols, fftw_complex* freq_repr, float* as, float* ps)
 void 
 spectra2freq(int rows, int cols, float* as, float* ps, fftw_complex* freq_repr)
 {
-  for (int i = 0; i < rows; i++){
-    for (int j = 0; j < cols; j++){ 
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) { 
       *freq_repr++ = *as * cos(*ps) + I * *as * sin(*ps);
       as++;
       ps++;

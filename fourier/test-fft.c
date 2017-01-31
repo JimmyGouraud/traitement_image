@@ -91,6 +91,7 @@ test_for_backward(pnm ims, char* name)
   free(channel);
   free(fftw_forward);
   free(fftw_backward);
+  free(namefile);
   pnm_free(imd);
   
   fprintf(stderr, "OK\n");
@@ -141,6 +142,7 @@ test_reconstruction(pnm ims, char* name)
   free(channel);
   free(fftw_forward);
   free(fftw_backward);
+  free(namefile);
   pnm_free(imd);
 
   fprintf(stderr, "OK\n");
@@ -208,6 +210,14 @@ test_display(pnm ims, char* name)
   char * namefile_ps = create_filename("PS-", name);
   pnm_save(imd_ps, PnmRawPpm, namefile_ps);
 
+  // Free memories
+  pnm_free(imd_as);
+  pnm_free(imd_ps);
+  pnm_free(ims_centered);
+  free(namefile_as);
+  free(namefile_ps);
+  free(channel);
+  free(fftw_forward);
   free(as);
   free(ps);
   
