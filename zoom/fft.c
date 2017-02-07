@@ -37,7 +37,7 @@ fftw_complex
 
 
 unsigned short 
-*backward(int rows, int cols, fftw_complex* freq_repr)
+*backward(int factor, int rows, int cols, fftw_complex* freq_repr)
 {
   fftw_complex* out = fftw_malloc(rows * cols * sizeof(fftw_complex));
   fftw_plan plan = fftw_plan_dft_2d(rows, cols, freq_repr, out, FFTW_BACKWARD, FFTW_ESTIMATE);
@@ -48,7 +48,7 @@ unsigned short
   float value_centered;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
-      value_centered = (creal(*out++) / (rows * cols));
+      value_centered = (factor * factor * creal(*out++)) / (rows * cols);
       if ((i+j) % 2 != 0) {
 	value_centered *= -1;
       }

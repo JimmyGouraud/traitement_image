@@ -65,26 +65,32 @@ static void
 test_for_backward(pnm ims, char* name)
 {
   fprintf(stderr, "test_for_backward: ");
-  
+
   int rows = pnm_get_height(ims);
   int cols = pnm_get_width(ims);
 
+  pnm imd = pnm_new(rows, cols, PnmRawPpm);
   
-  unsigned short* channel = malloc(rows * cols * sizeof(unsigned short));
-  pnm_get_channel(ims, channel, 0);
+  for (int k = 0; k < 3; k++) {
+    unsigned short* channel = malloc(rows * cols * sizeof(unsigned short));
+    pnm_get_channel(ims, channel, k);
+    
+    fftw_complex* fftw_forward = forward(rows, cols, channel);
+    unsigned short* fftw_backward = backward(rows, cols, fftw_forward);
+    
+    pnm_set_channel(imd, fftw_backward, k);
+
+    // Free memory
+    free(channel);
+    free(fftw_forward);
+    free(fftw_backward);
+  }
   
-  fftw_complex* fftw_forward = forward(rows, cols, channel);
-  unsigned short* fftw_backward = backward(rows, cols, fftw_forward);
-  
-  pnm imd = create_imd(rows, cols, fftw_backward);
 
   char * namefile = create_filename("FB-", name);
   pnm_save(imd, PnmRawPpm, namefile);
 
   // Free memory
-  free(channel);
-  free(fftw_forward);
-  free(fftw_backward);
   free(namefile);
   pnm_free(imd);
   
@@ -104,30 +110,40 @@ test_reconstruction(pnm ims, char* name)
   
   int rows = pnm_get_height(ims);
   int cols = pnm_get_width(ims);
-  unsigned short* channel = malloc(rows * cols * sizeof(unsigned short));
-  pnm_get_channel(ims, channel, 0);
 
-  fftw_complex* fftw_forward = forward(rows, cols, channel);
+  pnm imd = pnm_new(rows, cols, PnmRawPpm);
+
+  for (int k = 0; k < 3; k++) {
+    unsigned short* channel = malloc(rows * cols * sizeof(unsigned short));
+    pnm_get_channel(ims, channel, k);
+
+    fftw_complex* fftw_forward = forward(rows, cols, channel);
   
-  float *as = malloc(rows * cols * sizeof(float));
-  float *ps = malloc(rows * cols * sizeof(float));
-  freq2spectra(rows, cols, fftw_forward, as, ps);
-  spectra2freq(rows, cols, as, ps, fftw_forward);
+    float *as = malloc(rows * cols * sizeof(float));
+    float *ps = malloc(rows * cols * sizeof(float));
+    freq2spectra(rows, cols, fftw_forward, as, ps);
+    spectra2freq(rows, cols, as, ps, fftw_forward);
   
-  unsigned short* fftw_backward = backward(rows, cols, fftw_forward);
-  pnm imd = create_imd(rows, cols, fftw_backward);
+    unsigned short* fftw_backward = backward(rows, cols, fftw_forward);
+
+    pnm_set_channel(imd, fftw_backward, k);
+    
+    // Free memory
+    free(as);
+    free(ps);
+    free(channel);
+    free(fftw_forward);
+    free(fftw_backward);
+  }
+  //pnm imd = create_imd(rows, cols, fftw_backward);
 
   char * namefile = create_filename("FB-ASPS-", name);
   pnm_save(imd, PnmRawPpm, namefile);
 
   // Free memory
-  free(channel);
-  free(fftw_forward);
-  free(fftw_backward);
   free(namefile);
   pnm_free(imd);
-  free(as);
-  free(ps);
+
 
   fprintf(stderr, "OK\n");
 }
@@ -145,56 +161,65 @@ test_display(pnm ims, char* name)
   int rows = pnm_get_height(ims);
   int cols = pnm_get_width(ims);
 
-  unsigned short* channel = malloc(rows * cols * sizeof(unsigned short));
-  pnm_get_channel(ims, channel, 0);
-
-  fftw_complex* fftw_forward = forward(rows, cols, channel);
-  
-  float *as = malloc(rows * cols * sizeof(float));
-  float *ps = malloc(rows * cols * sizeof(float));
-  freq2spectra(rows, cols, fftw_forward, as, ps);
-
   pnm imd_as = pnm_new(cols, rows, PnmRawPpm);
   pnm imd_ps = pnm_new(cols, rows, PnmRawPpm);
+  
+  for (int k = 0; k < 3; k++) {
+    unsigned short* channel = malloc(rows * cols * sizeof(unsigned short));
+    pnm_get_channel(ims, channel, k);
 
-  // Trouve l'amplitude max
-  float max_amplitude = find_max(rows, cols, as);
-  float max_phase = find_max(rows, cols, ps);
-  float as_normalized;
-  float ps_normalized;
-  for (int i = 0; i < rows; i++) {
-    for (int j = 0; j < cols; j++) {
-      as_normalized = pow(*as/max_amplitude, 0.15) * 255;
-      if (*ps < 0) {
-	ps_normalized = 0;
-      } else {
-	ps_normalized = *ps / max_phase * 255;
+    fftw_complex* fftw_forward = forward(rows, cols, channel);
+  
+    float *as = malloc(rows * cols * sizeof(float));
+    float *ps = malloc(rows * cols * sizeof(float));
+    freq2spectra(rows, cols, fftw_forward, as, ps);
+
+    //pnm imd_as = pnm_new(cols, rows, PnmRawPpm);
+    //pnm imd_ps = pnm_new(cols, rows, PnmRawPpm);
+
+    // Trouve l'amplitude max
+    float max_amplitude = find_max(rows, cols, as);
+    float max_phase = find_max(rows, cols, ps);
+    float as_normalized;
+    float ps_normalized;
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+	as_normalized = pow(*as/max_amplitude, 0.15) * 255;
+	if (*ps < 0) {
+	  ps_normalized = 0;
+	} else {
+	  ps_normalized = *ps / max_phase * 255;
+	}
+
+	for (int k2 = 0; k2 < 3; k2++) {
+	  pnm_set_component(imd_as, i, j, k2, (unsigned short) as_normalized);
+	  pnm_set_component(imd_ps, i, j, k2, (unsigned short) ps_normalized);
+	}
+	as++;
+	ps++;
       }
-      for (int k = 0; k < 3; k++) {
-	pnm_set_component(imd_as, i, j, k, (unsigned short) as_normalized);
-	pnm_set_component(imd_ps, i, j, k, (unsigned short) ps_normalized);
-      }
-      as++;
-      ps++;
     }
+    as -= cols * rows;
+    ps -= cols * rows;
+
+
+    int size1 = strlen("AS-1-") + 1;
+    char* name_as = malloc(size1 * sizeof(char));
+    snprintf(name_as, size1, "AS-%d-", k);
+    char * namefile_as = create_filename(name_as, name);
+    pnm_save(imd_as, PnmRawPpm, namefile_as);
+
+    int size2 = strlen("PS-1-") + 1;
+    char* name_ps = malloc(size2 * sizeof(char));
+    snprintf(name_ps, size2, "AP-%d-", k);
+    char * namefile_ps = create_filename(name_ps, name);
+    pnm_save(imd_ps, PnmRawPpm, namefile_ps);
+
   }
-  as -= cols * rows;
-  ps -= cols * rows;
-
-  char * namefile_as = create_filename("AS-", name);
-  pnm_save(imd_as, PnmRawPpm, namefile_as);
-  char * namefile_ps = create_filename("PS-", name);
-  pnm_save(imd_ps, PnmRawPpm, namefile_ps);
-
+  
   // Free memory
   pnm_free(imd_as);
   pnm_free(imd_ps);
-  free(namefile_as);
-  free(namefile_ps);
-  free(channel);
-  free(fftw_forward);
-  free(as);
-  free(ps);
   
   fprintf(stderr, "OK\n");
 }
