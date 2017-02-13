@@ -100,7 +100,7 @@ double mitchellNetravali(double x)
 }
 
 
-void rotation (int rows, int cols, pnm ims, pnm imd) {  
+void mirrorRotation (int rows, int cols, pnm ims, pnm imd) {  
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
       for (int k = 0; k < 3; ++k) {
@@ -111,21 +111,23 @@ void rotation (int rows, int cols, pnm ims, pnm imd) {
 }
 
 
-void interpolation(char* filter_name, int factor, int imd_rows, int imd_cols, int cols, pnm ims, pnm imd)
+void interpolation(int factor, char* filter_name, int imd_rows, int imd_cols, int cols, pnm ims, pnm imd)
 {
+  double j, wf, left, right, S;
   for (int j_prime = 0; j_prime < imd_cols; ++j_prime){
     for (int i = 0; i < imd_rows; ++i) {
-      double j = j_prime / (double)factor;
-      double wf = WF(filter_name);
-      double left = j - wf;
-      double right = j + wf;
-      double S = 0;
-      for (int k = left; k < right; ++k) {
+      j = j_prime / (double)factor;
+      wf = WF(filter_name);
+      left = j - wf;
+      right = j + wf;
+      S = 0;
+      for (int k = left; k <= right; ++k) {
 	if (k < 0 || k >= cols){
 	  continue;
 	}
 	S += pnm_get_component(ims, i, k, 0) * h(filter_name, k - j);
       }
+     
       for (int k = 0; k < 3; ++k) {
 	pnm_set_component(imd, i, j_prime, k, S);
       }
@@ -143,19 +145,25 @@ void filter(int factor, char* filter_name, char* ims_name, char* imd_name)
   int imd_cols = cols * factor;
 
   pnm imd_dim1 = pnm_new(imd_cols, rows, PnmRawPpm);
-  interpolation(filter_name, factor, rows, imd_cols, cols, ims, imd_dim1);
+  interpolation(factor, filter_name, rows, imd_cols, cols, ims, imd_dim1);
 
   pnm imd_rotation = pnm_new(cols, imd_rows, PnmRawPpm);
-  rotation(rows, imd_cols, imd_dim1, imd_rotation);
+  mirrorRotation(rows, imd_cols, imd_dim1, imd_rotation);
 
   pnm imd_dim2 = pnm_new(imd_cols, imd_rows, PnmRawPpm);
-  interpolation(filter_name, factor, imd_rows, imd_cols, cols, imd_rotation, imd_dim2);
+  interpolation(factor, filter_name, imd_rows, imd_cols, cols, imd_rotation, imd_dim2);
 
   pnm imd = pnm_new(imd_cols, imd_rows, PnmRawPpm);
-  rotation(imd_rows, imd_cols, imd_dim2, imd);
+  mirrorRotation(imd_rows, imd_cols, imd_dim2, imd);
 
   pnm_save(imd, PnmRawPpm, imd_name);
 
+  // Free Memory
+  pnm_free(ims);
+  pnm_free(imd);
+  pnm_free(imd_dim1);
+  pnm_free(imd_dim2);
+  pnm_free(imd_rotation);
 }
 
 
