@@ -57,7 +57,7 @@ double h(char* filter_name, double x)
 
 double box(double x)
 {
-  if (-0.5 <= x && x <= 0.5) {
+  if (-0.5 >= x && x <= 0.5) {
     return 1.0;
   }
   return 0.0;
@@ -65,38 +65,38 @@ double box(double x)
 
 double tent(double x)
 {
-  if (-1 <= x && x <= 1){
-    return 1 - fabs(x);
+  if (-1.0 <= x && x <= 1.0) {
+    return 1.0 - fabs(x);
   }
 
-  return 0;
+  return 0.0;
 }
 
 double bell(double x)
 {
   double absX = fabs(x);
-  if (absX <= 0.5){
+  if (absX <= 0.5) {
     return -(x*x) + 0.75;
   }
 
-  if (absX <= 1.5){
+  if (absX <= 1.5) {
     return 0.5 * (absX - 1.5) * (absX - 1.5);
   }
 
-  return 0;
+  return 0.0;
 }
 
 double mitchellNetravali(double x)
 {
   double absX = fabs(x);
-  if (-2 <= x && x <= 2) {
-    if (-1 <= x && x <= 1) {
-      return (7/6.0) * absX * absX * absX - 2 * x * x + 8/9.0;
+  if (-2.0 <= x && x <= 2.0) {
+    if (-1.0 <= x && x <= 1.0) {
+      return 1.1666 * absX * absX * absX - 2.0 * x * x + 0.8888;
     }
-    return (-7/18.0) * absX * absX * absX + 2 * x * x - (10/3.0) * absX + 16/9.0;
+    return -0.3888 * absX * absX * absX + 2.0 * x * x - 3.333 * absX + 1.777;
   }
   
-  return 0;
+  return 0.0;
 }
 
 
@@ -113,23 +113,29 @@ void mirrorRotation (int rows, int cols, pnm ims, pnm imd) {
 
 void interpolation(int factor, char* filter_name, int imd_rows, int imd_cols, int cols, pnm ims, pnm imd)
 {
-  double j, wf, left, right, S;
-  for (int j_prime = 0; j_prime < imd_cols; ++j_prime){
+  double j2, wf, left, right, S;
+  for (int j = 0; j < imd_cols; ++j) {
     for (int i = 0; i < imd_rows; ++i) {
-      j = j_prime / (double)factor;
-      wf = WF(filter_name);
-      left = j - wf;
-      right = j + wf;
-      S = 0;
-      for (int k = left; k <= right; ++k) {
-	if (k < 0 || k >= cols){
-	  continue;
-	}
-	S += pnm_get_component(ims, i, k, 0) * h(filter_name, k - j);
-      }
-     
       for (int k = 0; k < 3; ++k) {
-	pnm_set_component(imd, i, j_prime, k, S);
+	j2 = j / (double)factor;
+	wf = WF(filter_name);
+	left = j2 - wf;
+	left = left < 0? 0 : left;
+	right = j2 + wf;
+	right = right >= cols ? cols - 1 : right;
+	S = 0.0;
+	//printf("i = %d, j = %d, left = %f, right = %f\n", i, j, left, right);
+	for (int k2 = left; k2 <= right; ++k2) {
+	  S += pnm_get_component(ims, i, k2, k) * h(filter_name, k2 - j2);
+	}
+
+	if (S < 0) {
+	  S = 0;
+	} else if (S > 255) {
+	  S = 255;
+	}
+
+	pnm_set_component(imd, i, j, k, (unsigned short)S);	
       }
     }
   }
@@ -167,13 +173,15 @@ void filter(int factor, char* filter_name, char* ims_name, char* imd_name)
 }
 
 
-void usage (char *s){
+void usage (char *s)
+{
   fprintf(stderr, "Usage: %s <factor> <filter-name> <ims> <imd>\n", s);
   exit(EXIT_FAILURE);
 }
 
 #define PARAM 4
-int main (int argc, char *argv[]){
+int main (int argc, char *argv[])
+{
   if (argc != PARAM+1) usage(argv[0]);
 
   int factor = atoi(argv[1]);
