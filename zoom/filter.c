@@ -57,7 +57,7 @@ double h(char* filter_name, double x)
 
 double box(double x)
 {
-  if (-0.5 >= x && x <= 0.5) {
+  if (-0.5 <= x && x < 0.5) {
     return 1.0;
   }
   return 0.0;
@@ -91,9 +91,9 @@ double mitchellNetravali(double x)
   double absX = fabs(x);
   if (-2.0 <= x && x <= 2.0) {
     if (-1.0 <= x && x <= 1.0) {
-      return 1.1666 * absX * absX * absX - 2.0 * x * x + 0.8888;
+      return 1.1667 * absX * absX * absX - 2.0 * x * x + 0.8889;
     }
-    return -0.3888 * absX * absX * absX + 2.0 * x * x - 3.333 * absX + 1.777;
+    return -0.3889 * absX * absX * absX + 2.0 * x * x - 3.333 * absX + 1.7778;
   }
   
   return 0.0;
@@ -116,17 +116,22 @@ void interpolation(int factor, char* filter_name, int imd_rows, int imd_cols, in
   double j2, wf, left, right, S;
   for (int j = 0; j < imd_cols; ++j) {
     for (int i = 0; i < imd_rows; ++i) {
+      j2 = j / (double)factor;
+      wf = WF(filter_name);
+      left = j2 - wf;
+      left = left < 0? 0 : left;
+      right = j2 + wf;
+      right = right >= cols ? cols : right;
+
       for (int k = 0; k < 3; ++k) {
-	j2 = j / (double)factor;
-	wf = WF(filter_name);
-	left = j2 - wf;
-	left = left < 0? 0 : left;
-	right = j2 + wf;
-	right = right >= cols ? cols - 1 : right;
 	S = 0.0;
-	//printf("i = %d, j = %d, left = %f, right = %f\n", i, j, left, right);
+	
 	for (int k2 = left; k2 <= right; ++k2) {
-	  S += pnm_get_component(ims, i, k2, k) * h(filter_name, k2 - j2);
+	  if (k2 == cols) {
+	    S += pnm_get_component(ims, i, k2 - 1, k) * h(filter_name, k2 - j2);
+	  } else {
+	    S += pnm_get_component(ims, i, k2, k) * h(filter_name, k2 - j2);
+	  }
 	}
 
 	if (S < 0) {
@@ -135,7 +140,7 @@ void interpolation(int factor, char* filter_name, int imd_rows, int imd_cols, in
 	  S = 255;
 	}
 
-	pnm_set_component(imd, i, j, k, (unsigned short)S);	
+	pnm_set_component(imd, i, j, k, S);	
       }
     }
   }
