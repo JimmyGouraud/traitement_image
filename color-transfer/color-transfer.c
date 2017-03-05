@@ -35,15 +35,15 @@ static float LMS2RGB[D][D] = {
 };
 
 static float LMS2LAB[D][D] = {
-  { 0.5773,       0,       0},
-  {      0,  0.4082,       0},
-  {      0,       0,       0}
+  { 0.5773,  0.5773,  0.5773},
+  { 0.4082,  0.4082, -0.8165},
+  { 0.7071, -0.7071,       0}
 };
 
 static float LAB2LMS[D][D] = {
-  { 0.5773,       0,       0},
-  {      0,  0.4082,       0},
-  {      0,       0,       0}
+  { 0.5773,  0.4082,  0.7071},
+  { 0.5773,  0.4082, -0.7071},
+  { 0.5773, -0.8165,       0}
 };
 
 
@@ -57,24 +57,22 @@ static void product_matrix_vector(float matrix[D][D], float vector1[D], float ve
   }
 }
 
-
 static void delete_skew_RGB_to_LMS(int rows, int cols, float* values_lms)
 {
   float value;
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
       for (int k = 0; k < 3; ++k) {
-	// Gérer le cas où (values_lms == 0)
-	value = log10(*values_lms);
+	if (values_lms == 0) {
+	  value = 0;
+	} else {
+	  value = log10(*values_lms);
+	}
 	*values_lms++ = value;
       }
     }
   }
   values_lms -= rows * cols * 3;
-  
-  (void) rows;
-  (void) cols;
-  (void) values_lms;
 }
 
 static void delete_skew_LMS_to_RGB(int rows, int cols, float* values_lms)
@@ -89,10 +87,6 @@ static void delete_skew_LMS_to_RGB(int rows, int cols, float* values_lms)
     }
   }
   values_lms -= rows * cols * 3;
-  
-  (void) rows;
-  (void) cols;
-  (void) values_lms;
 }
 
 static pnm float_to_pnm(int rows, int cols, float* values_ims)
@@ -157,46 +151,69 @@ static void A_to_B(int rows, int cols, float* ims, float* imd, float matrix[D][D
   free(vectorB);
 }
 
+static float* convertRGBtoLAB(int rows, int cols, pnm ims)
+{
+  float* values_RGB = pnm_to_float(ims);
+  
+  float* values_LMS = malloc(rows * cols * D * sizeof(float));
+  A_to_B(rows, cols, values_RGB, values_LMS, RGB2LMS);
+  delete_skew_RGB_to_LMS(rows, cols, values_LMS);
+  
+  float* values_LAB = malloc(rows * cols * D * sizeof(float));
+  A_to_B(rows, cols, values_LMS, values_LAB, LMS2LAB);
+
+  free(values_RGB);
+  free(values_LMS);
+  
+  return values_LAB;
+}
+
+static pnm convertLABtoRGB(int rows, int cols, float* values_LAB)
+{
+  float* values_LMS = malloc(rows * cols * D * sizeof(float));
+  A_to_B(rows, cols, values_LAB, values_LMS, LAB2LMS);
+  delete_skew_LMS_to_RGB(rows, cols, values_LMS);
+
+  float* values_RGB = malloc(rows * cols * D * sizeof(float));
+  A_to_B(rows, cols, values_LMS, values_RGB, LMS2RGB);
+
+  pnm imd = float_to_pnm(rows, cols, values_RGB);
+  
+  free(values_LMS);
+  free(values_RGB);
+
+  return imd;
+}
+
+static void compute_mean(int rows, int cols, float *values)
+{
+  float values_mean[3] = {0,0,0};
+  
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      for (int k = 0; k < 3; ++k) {
+	values_mean[k] += *values++;
+      }
+    }
+  }
+  values -= rows * cols * D;
+}
 
 static void process(char *name_ims, char *name_imt, char* name_imd)
 {
   pnm ims = pnm_load(name_ims);
   int rows = pnm_get_height(ims);
   int cols = pnm_get_width(ims);
-  float* values_ims = pnm_to_float(ims);
-  
-  float* values_lms = malloc(rows * cols * D * sizeof(float));
-  A_to_B(rows, cols, values_ims, values_lms, RGB2LMS);
-  pnm_save(float_to_pnm(rows, cols, values_lms), PnmRawPpm, "RGB2LMS.ppm");
-  delete_skew_RGB_to_LMS(rows, cols, values_lms);
-  pnm_save(float_to_pnm(rows, cols, values_lms), PnmRawPpm, "RGB2LMSwithoutSkew.ppm");
-  
-  
-  float* values_lab = malloc(rows * cols * D * sizeof(float));
-  A_to_B(rows, cols, values_lms, values_lab, LMS2LAB);
-  pnm_save(float_to_pnm(rows, cols, values_lab), PnmRawPpm, "LMS2LAB.ppm");
+  //pnm imt = pnm_load(name_imt);
 
-  A_to_B(rows, cols, values_lab, values_lms, LAB2LMS);
-  pnm_save(float_to_pnm(rows, cols, values_lms), PnmRawPpm, "LAB2LMS.ppm");
-  
-  delete_skew_LMS_to_RGB(rows, cols, values_lms);
-  pnm_save(float_to_pnm(rows, cols, values_lms), PnmRawPpm, "LAB2LMSwithoutSkew.ppm");
+  float* values_LAB_ims = convertRGBtoLAB(rows, cols, ims);
+  //float* values_LAB_imt = convertRGBtoLAB(rows, cols, imt);
 
-  float* values_imd = malloc(rows * cols * D * sizeof(float));
-  A_to_B(rows, cols, values_lms, values_imd, LMS2RGB);
-  pnm_save(float_to_pnm(rows, cols, values_imd), PnmRawPpm, "LMS2RGB.ppm");
-
-  pnm imd = float_to_pnm(rows, cols, values_imd);
+  pnm imd = convertLABtoRGB(rows, cols, values_LAB_ims);
   pnm_save(imd, PnmRawPpm, name_imd);
 
-
   (void) ID;
-  (void) LMS2RGB;
-  (void) RGB2LMS;
-  (void) values_ims;
-  (void) name_ims;
   (void) name_imt;
-  (void) name_imd;
 }
 
 void usage (char *s){

@@ -1,6 +1,6 @@
 ROOT=../bcl
 
-CFLAGS= -Wall -Wextra -Werror -std=c99 -I$(ROOT)/include
+CFLAGS= -Wall -Wextra -std=c99 -I$(ROOT)/include
 LDFLAGS= -L$(ROOT)/lib
 LDLIBS= -lbcl -lm
 BIN=\

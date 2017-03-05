@@ -29,9 +29,7 @@ INSTALL_DIR  = $(COPY) -R
 LN_S         = ln -sf
 
 OBJ= src/objects/bundled.o src/objects/collection.o src/objects/errc.o src/objects/graph.o src/objects/main.o src/objects/pobject.o src/objects/region.o
-OPERS= \
-	bin/pvisu \
-	bin/pdraw
+OPERS=
 
 # Avoid removing intermediates files.
 .PRECIOUS: %.cpp
@@ -75,7 +73,6 @@ src/objects/%.o: src/objects/%.cpp  include/%.h
 	$(PPP) $< > $@ || $(RM) $@
 clean:
 	-$(RM) $(OBJ)
-	cd src/viewers/Qt && $(MAKE) clean
 
 cleandist: distclean
 
@@ -84,8 +81,6 @@ distclean: clean
 	-$(RM) -r deps
 	-$(RM) pandore
 	-$(RM) Makefile
-	-$(RM) bin/pdraw
-	cd src/viewers/Qt && $(MAKE) distclean
 	-$(RM) libpandore.so
 	-$(RM) libpandore.a
 install:
@@ -134,8 +129,3 @@ src/objects/region.o: src/objects/region.cpp include/pandore.h include/ptypes.h 
  include/graph.h include/plist.h include/promotions.h include/plimits.h \
  include/collection.h include/bundled.h include/main.h
 
-bin/pvisu: FORCE
-	cd src/viewers/Qt && $(MAKE)
-bin/pdraw: bin/pvisu
-	mkdir -p bin
-	$(COPY) bin/pvisu bin/pdraw
