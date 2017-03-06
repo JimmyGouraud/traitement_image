@@ -185,31 +185,130 @@ static pnm convertLABtoRGB(int rows, int cols, float* values_LAB)
   return imd;
 }
 
-static void compute_mean(int rows, int cols, float *values)
+static float* compute_mean(int rows, int cols, float *values)
 {
-  float values_mean[3] = {0,0,0};
+  float* values_mean = malloc(3 * sizeof(float));
+  for (int i = 0; i < 3; ++i) {
+    *values_mean++ = 0;
+  }
+  values_mean -= 3;
   
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
       for (int k = 0; k < 3; ++k) {
-	values_mean[k] += *values++;
+	*values_mean++ = *values++;
       }
+      values_mean -= 3;
     }
   }
-  values -= rows * cols * D;
+  values -= rows * cols * 3;
+
+  for (int i = 0; i < 3; ++i) {
+    *values_mean++ /= (rows * cols);
+  }
+  values_mean -= 3;
+
+  return values_mean;
 }
 
+// Standard Deviation
+static float* compute_sd(int rows, int cols, float* values)
+{
+  float* values_sd = malloc(3 * sizeof(float));
+  for (int i = 0; i < 3; ++i) {
+    *values_sd++ = 0;
+  }
+  values_sd -= 3;
+
+  float* values_mean = compute_mean(rows, cols, values);
+
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      for (int k = 0; k < 3; ++k) {
+	*values_sd += (*values - *values_mean) * (*values - *values_mean);
+	values++;
+	values_sd++;
+	values_mean++;
+      }
+      values_sd -= 3;
+      values_mean -= 3;
+    }
+  }
+  values -= rows * cols * 3;
+
+
+  for (int i = 0; i < 3; ++i) {
+    *values_sd = sqrt(*values_sd / (rows * cols));
+    values_sd++;
+    values_mean++;
+  }
+  values_mean -= 3;
+  values_sd -= 3;
+  
+  free(values_mean);
+  return values_sd;
+}
+
+
+static float* step_10 (int rows, int cols, float *values)
+{
+  float* values_mean = compute_mean(rows, cols, values);
+  float* step10 = malloc(rows * cols * 3 * sizeof(float));
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      for (int k = 0; k < 3; ++k) {
+	*step10++ -= *values_mean++;
+      }
+      values_mean -= 3;
+    }
+  }
+  values -= rows * cols * 3;
+  step10 -= rows * cols * 3;
+  
+  return step10;
+}
+
+static float* step_11 (int rows_ims, int cols_ims, float *values_ims, int rows_imt, int cols_imt, float* values_imt)
+{
+  float* step10 = step_10(rows_imt, cols_imt, values_imt);
+  float* sd_ims = compute_sd(rows_ims, cols_ims, values_ims);
+  float* sd_imt = compute_sd(rows_imt, cols_imt, values_imt);
+  
+  float* step11 = malloc(rows_ims * cols_ims * 3 * sizeof(float));
+  for (int i = 0; i < rows_ims; ++i) {
+    for (int j = 0; j < cols_ims; ++j) {
+      for (int k = 0; k < 3; ++k) {
+	*step11++ = (*sd_imt++ / *sd_ims++) * *step10++;
+      }
+      sd_imt -= 3;
+      sd_ims -= 3;
+      step10 -= 3;
+    }
+  }
+  step11 -= rows_ims * cols_ims * 3;
+
+  return step11;
+}
+
+  
 static void process(char *name_ims, char *name_imt, char* name_imd)
 {
   pnm ims = pnm_load(name_ims);
-  int rows = pnm_get_height(ims);
-  int cols = pnm_get_width(ims);
-  //pnm imt = pnm_load(name_imt);
+  int rows_ims = pnm_get_height(ims);
+  int cols_ims = pnm_get_width(ims);
+  
+  pnm imt = pnm_load(name_imt);
+  int rows_imt = pnm_get_height(imt);
+  int cols_imt = pnm_get_width(imt);
 
-  float* values_LAB_ims = convertRGBtoLAB(rows, cols, ims);
-  //float* values_LAB_imt = convertRGBtoLAB(rows, cols, imt);
+  float* values_LAB_ims = convertRGBtoLAB(rows_ims, cols_ims, ims);
+  float* values_LAB_imt = convertRGBtoLAB(rows_imt, cols_imt, imt);
 
-  pnm imd = convertLABtoRGB(rows, cols, values_LAB_ims);
+  float* step11 = step_11(rows_ims, cols_ims, values_LAB_ims,
+			  rows_imt, cols_imt, values_LAB_imt);
+  (void) step11;
+  
+  pnm imd = convertLABtoRGB(rows_ims, cols_ims, values_LAB_ims);
   pnm_save(imd, PnmRawPpm, name_imd);
 
   (void) ID;
