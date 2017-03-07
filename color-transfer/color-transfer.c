@@ -63,7 +63,7 @@ static void delete_skew_RGB_to_LMS(int size, float* values_lms)
   float value;
   for (int i = 0; i < size; ++i) {
     for (int k = 0; k < 3; ++k) {
-      if (*values_lms == 0) {
+      if (*values_lms <= 0) {
 	value = 0;
       } else {
 	value = log10(*values_lms);
@@ -103,8 +103,9 @@ static pnm float_to_pnm(int rows, int cols, float* values_ims)
 	} else if (*values_ims > 255) {
 	  value = 255;
 	} else {
-	  value = (unsigned short) *values_ims++;
+	  value = (unsigned short) *values_ims;
 	}
+	values_ims++;
 	pnm_set_component(ims, i, j, k, value);
       }
     }
