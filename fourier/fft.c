@@ -44,7 +44,7 @@ unsigned short
   
   fftw_execute(plan);
 
-  unsigned short* gray_img = fftw_malloc(rows * cols * sizeof(unsigned short));
+  unsigned short* gray_img = malloc(rows * cols * sizeof(unsigned short));
   float value_centered;
   for (int i = 0; i < rows; i++) {
     for (int j = 0; j < cols; j++) {
