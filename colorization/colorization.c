@@ -295,8 +295,8 @@ static float* compute_jittered_sampling(int rows, int cols, float* values_ims, i
       int random_j = rand()%nbPixelsBySide + j;
       
       int cpt = 0;
-      double mean = 0;
-      double sd = 0;
+      float mean = 0;
+      float sd = 0;
       for (int i2 = random_i - neighborhoodSize; i2 <= random_i + neighborhoodSize; ++i2) {
 	if (i2 < 0 || i2 >= rows) { continue; }
 	for (int j2 = random_j - neighborhoodSize; j2 <= random_j + neighborhoodSize; ++j2) {
@@ -309,13 +309,14 @@ static float* compute_jittered_sampling(int rows, int cols, float* values_ims, i
 	  cpt++;
 	} 
       }
-      mean /= cpt;
+      mean /= (float)cpt;
+      sd = sqrt(sd / (float)cpt - (mean * mean));
       int offset = (random_i * cols + random_j) * 3;
-      values_ims += offset;
-      *jittered_sampling++ = sqrt(sd / cpt - (mean * mean));
+      values_ims += offset + 1;
+      *jittered_sampling++ = sd;
       *jittered_sampling++ = *values_ims++;
       *jittered_sampling++ = *values_ims++;
-      values_ims -= offset + 3;
+      values_ims -= (offset + 3);
     }
   }
   jittered_sampling -= *nbSamples * 3;
@@ -344,32 +345,30 @@ static void process(char *name_ims, char *name_imt, char* name_imd)
   printf("step 2 - done!\n");
   
   // Step 3 - random jittered grid
-  int nbSamples = 600;
+  int nbSamples = 230;
   float* jittered_sampling = compute_jittered_sampling(rows_ims, cols_ims, values_ims, &nbSamples, 2);
   printf("step 3 - done!\n");
 
   // Step 4 - Colorization
   for (int i = 0; i < rows_imt; ++i) {
     for (int j = 0; j < cols_imt; ++j) {
-      float best_luminance = 500;
-      float best_alpha;
-      float best_beta;
+      float best_luminance = 0;
+      float alpha;
+      float beta;
       for (int k = 0; k < nbSamples; ++k) {
-	float value_luminance = 0.5 * (*lum_remapping + *jittered_sampling);
-	if(abs(value_luminance - *values_imt) < abs(best_luminance - *values_imt)) {
+	float value_luminance = 0.5 * (*lum_remapping + *jittered_sampling++);
+	if (abs(*values_imt - value_luminance) < abs(*values_imt - best_luminance)) {
 	  best_luminance = value_luminance;
-	  jittered_sampling++;
-	  best_alpha = *jittered_sampling++;
-	  best_beta = *jittered_sampling++;
+	  alpha = *jittered_sampling++;
+	  beta = *jittered_sampling++;
 	} else {
-	  jittered_sampling += 3;
+	  jittered_sampling += 2;
 	}
       }
       jittered_sampling -= nbSamples * 3;
-      *values_imt++ = best_luminance;
-      *values_imt++ = best_alpha;
-      *values_imt++ = best_beta;
-      printf("i = %d, j = %d, *lum_remapping = %f\n", i, j, *lum_remapping);
+      values_imt++;
+      *values_imt++ = alpha;
+      *values_imt++ = beta;
       lum_remapping++;
     }
   }
@@ -381,7 +380,6 @@ static void process(char *name_ims, char *name_imt, char* name_imd)
   // Step 5 - LAB to RGB
   pnm imd = convertLABtoRGB(rows_imt, cols_imt, values_imt);
   pnm_save(imd, PnmRawPpm, name_imd);
-
   printf("step 5 - done!\n");
 
   pnm_free(ims);
