@@ -1,12 +1,9 @@
 /**
- * @file color-transfert
- * @brief transfert color from source image to target image.
- *        Method from Reinhard et al. : 
- *        Erik Reinhard, Michael Ashikhmin, Bruce Gooch and Peter Shirley, 
- *        'Color Transfer between Images', IEEE CGA special issue on 
- *        Applied Perception, Vol 21, No 5, pp 34-41, September - October 2001
+ * @file colorization
+ * @brief Colorization of a grayscale images by transferring color 
+ *        between a source, color image and a destination, greyscale image.
  */
-
+#include <time.h>
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
@@ -14,14 +11,6 @@
 #include <bcl.h>
 
 #define D 3
-
-/*
-static float ID[D][D] = {
-  {1, 0, 0}, 
-  {0, 1, 0},  
-  {0, 0, 1}
-};
-*/
 
 
 static float RGB2LMS[D][D] = {
@@ -252,7 +241,8 @@ static float* compute_sd(int size, float* values)
   return values_sd;
 }
 
-static pnm color_transfer(pnm ims, pnm imt)
+
+static float* luminance_remapping(pnm ims, pnm imt)
 {
   int size_ims = pnm_get_height(ims) * pnm_get_width(ims);
   
@@ -263,25 +253,18 @@ static pnm color_transfer(pnm ims, pnm imt)
   float* values_LAB_ims = convertRGBtoLAB(ims);
   float* values_LAB_imt = convertRGBtoLAB(imt);
 
-  float* values_mean_imt = compute_mean(size_imt, values_LAB_imt);
   float* values_mean_ims = compute_mean(size_ims, values_LAB_ims);
+  float* values_mean_imt = compute_mean(size_imt, values_LAB_imt);
   float* sd_imt = compute_sd(size_imt, values_LAB_imt);  
   float* sd_ims = compute_sd(size_ims, values_LAB_ims);
-
-  float* values_imd = malloc(size_imt * 3 * sizeof(float));
+  
+  float* values_luminance_remapping = malloc(size_imt * sizeof(float));
   for (int i = 0; i < size_imt; ++i) {
-    for (int k = 0; k < 3; ++k) {
-      *values_imd++ = *sd_ims++ * (*values_LAB_imt++ - *values_mean_imt++) / *sd_imt++ + *values_mean_ims++;
-    }
-    values_mean_imt -= 3;
-    values_mean_ims -= 3;
-    sd_imt -= 3;
-    sd_ims -= 3;
+    *values_luminance_remapping++ = *sd_ims * (*values_LAB_imt - *values_mean_imt) / *sd_imt + *values_mean_ims;
+    values_LAB_imt += 3;
   }
   values_LAB_imt -= size_imt * 3;
-  values_imd -= size_imt * 3;
-
-  pnm imd = convertLABtoRGB(rows_imt, cols_imt, values_imd);
+  values_luminance_remapping -= size_imt;
   
   free(values_LAB_ims);
   free(values_LAB_imt);
@@ -289,18 +272,117 @@ static pnm color_transfer(pnm ims, pnm imt)
   free(values_mean_ims);
   free(sd_imt);  
   free(sd_ims);
-  free(values_imd);
   
-  return imd;
+  return values_luminance_remapping;
 }
+
+static float* compute_jittered_sampling(int rows, int cols, float* values_ims, int* nbSamples, int neighborhoodSize) {
+  srand(time(NULL));
+  
+  int size = rows * cols;
+  int nbPixelsBySquare = size / *nbSamples;
+  int nbPixelsBySide = sqrt(nbPixelsBySquare);
+  int nbSquaresByRows = rows / nbPixelsBySide;
+  int nbSquaresByCols = cols / nbPixelsBySide;
+  *nbSamples = nbSquaresByRows * nbSquaresByCols;
+  
+  float* jittered_sampling = malloc(3 * *nbSamples * sizeof(float));
+  for (int i = 0; i < rows; i += nbPixelsBySide) {
+    if (i >= nbSquaresByRows * nbPixelsBySide) { continue; }
+    for (int j = 0; j < cols; j += nbPixelsBySide) {
+      if (j >= nbSquaresByCols * nbPixelsBySide) { continue; }
+      int random_i = rand()%nbPixelsBySide + i;
+      int random_j = rand()%nbPixelsBySide + j;
+      
+      int cpt = 0;
+      double mean = 0;
+      double sd = 0;
+      for (int i2 = random_i - neighborhoodSize; i2 <= random_i + neighborhoodSize; ++i2) {
+	if (i2 < 0 || i2 >= rows) { continue; }
+	for (int j2 = random_j - neighborhoodSize; j2 <= random_j + neighborhoodSize; ++j2) {
+	  if (j2 < 0 || j2 >= cols) { continue; }
+	  int offset = (i2 * cols + j2) * 3;
+	  values_ims += offset;
+	  mean += *values_ims;
+	  sd += *values_ims * *values_ims;
+	  values_ims -= offset;
+	  cpt++;
+	} 
+      }
+      mean /= cpt;
+      int offset = (random_i * cols + random_j) * 3;
+      values_ims += offset;
+      *jittered_sampling++ = sqrt(sd / cpt - (mean * mean));
+      *jittered_sampling++ = *values_ims++;
+      *jittered_sampling++ = *values_ims++;
+      values_ims -= offset + 3;
+    }
+  }
+  jittered_sampling -= *nbSamples * 3;
+
+  return jittered_sampling;
+}
+
 
 static void process(char *name_ims, char *name_imt, char* name_imd)
 {
   pnm ims = pnm_load(name_ims);
+  int rows_ims = pnm_get_height(ims);
+  int cols_ims = pnm_get_width(ims);
+  
   pnm imt = pnm_load(name_imt);
+  int rows_imt = pnm_get_height(imt);
+  int cols_imt = pnm_get_width(imt);
+  
+  // Step 1 - RGB to LAB
+  float* values_ims = convertRGBtoLAB(ims);
+  float* values_imt = convertRGBtoLAB(imt);
+  printf("step 1 - done!\n");
+  
+  // Step 2 - luminance remapping
+  float* lum_remapping = luminance_remapping(ims, imt);
+  printf("step 2 - done!\n");
+  
+  // Step 3 - random jittered grid
+  int nbSamples = 600;
+  float* jittered_sampling = compute_jittered_sampling(rows_ims, cols_ims, values_ims, &nbSamples, 2);
+  printf("step 3 - done!\n");
 
-  pnm imd = color_transfer(ims, imt);
+  // Step 4 - Colorization
+  for (int i = 0; i < rows_imt; ++i) {
+    for (int j = 0; j < cols_imt; ++j) {
+      float best_luminance = 500;
+      float best_alpha;
+      float best_beta;
+      for (int k = 0; k < nbSamples; ++k) {
+	float value_luminance = 0.5 * (*lum_remapping + *jittered_sampling);
+	if(abs(value_luminance - *values_imt) < abs(best_luminance - *values_imt)) {
+	  best_luminance = value_luminance;
+	  jittered_sampling++;
+	  best_alpha = *jittered_sampling++;
+	  best_beta = *jittered_sampling++;
+	} else {
+	  jittered_sampling += 3;
+	}
+      }
+      jittered_sampling -= nbSamples * 3;
+      *values_imt++ = best_luminance;
+      *values_imt++ = best_alpha;
+      *values_imt++ = best_beta;
+      printf("i = %d, j = %d, *lum_remapping = %f\n", i, j, *lum_remapping);
+      lum_remapping++;
+    }
+  }
+  lum_remapping -= rows_imt * cols_imt;
+  values_imt -= rows_imt * cols_imt * 3;
+  
+  printf("step 4 - done!\n");
+
+  // Step 5 - LAB to RGB
+  pnm imd = convertLABtoRGB(rows_imt, cols_imt, values_imt);
   pnm_save(imd, PnmRawPpm, name_imd);
+
+  printf("step 5 - done!\n");
 
   pnm_free(ims);
   pnm_free(imt);
