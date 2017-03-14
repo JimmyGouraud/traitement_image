@@ -187,24 +187,18 @@ static pnm convertLABtoRGB(int rows, int cols, float* values_LAB)
 
 static float* compute_mean(int size, float *values)
 {
-  float* values_mean = malloc(3 * sizeof(float));
-  for (int i = 0; i < 3; ++i) {
-    *values_mean++ = 0;
-  }
-  values_mean -= 3;
+  float* values_mean = calloc(3, sizeof(float));
   
   for (int i = 0; i < size; ++i) {
     for (int k = 0; k < 3; ++k) {
-      *values_mean++ += *values++;
+      values_mean[k] += *values++;
     }
-    values_mean -= 3;
   }
   values -= size * 3;
   
   for (int i = 0; i < 3; ++i) {
-    *values_mean++ /= size;
+    values_mean[i] /= size;
   }
-  values_mean -= 3;
 
   return values_mean;
 }
@@ -212,29 +206,20 @@ static float* compute_mean(int size, float *values)
 // Standard Deviation
 static float* compute_sd(int size, float* values)
 {
-  float* values_sd = malloc(3 * sizeof(float));
-  for (int i = 0; i < 3; ++i) {
-    *values_sd++ = 0;
-  }
-  values_sd -= 3;
+  float* values_sd = calloc(3, sizeof(float));
 
   for (int i = 0; i < size; ++i) {
     for (int k = 0; k < 3; ++k) {
-      *values_sd++ += *values * *values;
+      values_sd[k] += *values * *values;
       values++;
     }
-    values_sd -= 3;
   }
   values -= size * 3;
 
   float* values_mean = compute_mean(size, values);
   for (int i = 0; i < 3; ++i) {
-    *values_sd = sqrt(*values_sd / size - (*values_mean * *values_mean));
-    values_sd++;
-    values_mean++;
+    *values_sd = sqrt(values_sd[i] / size - (values_mean[i] * values_mean[i]));
   }
-  values_mean -= 3;
-  values_sd -= 3;
 
   free(values_mean);
   
@@ -245,35 +230,28 @@ static float* compute_sd(int size, float* values)
 static float* luminance_remapping(pnm ims, pnm imt)
 {
   int size_ims = pnm_get_height(ims) * pnm_get_width(ims);
-  
-  int rows_imt = pnm_get_height(imt);
-  int cols_imt = pnm_get_width(imt);
-  int size_imt = rows_imt * cols_imt;
+  int size_imt = pnm_get_height(imt) * pnm_get_width(imt);
 
   float* values_LAB_ims = convertRGBtoLAB(ims);
   float* values_LAB_imt = convertRGBtoLAB(imt);
 
   float* values_mean_ims = compute_mean(size_ims, values_LAB_ims);
   float* values_mean_imt = compute_mean(size_imt, values_LAB_imt);
-  float* sd_imt = compute_sd(size_imt, values_LAB_imt);  
   float* sd_ims = compute_sd(size_ims, values_LAB_ims);
+  float* sd_imt = compute_sd(size_imt, values_LAB_imt);
   
-  float* values_luminance_remapping = malloc(size_imt * sizeof(float));
-  for (int i = 0; i < size_imt; ++i) {
-    *values_luminance_remapping++ = *sd_ims * (*values_LAB_imt - *values_mean_imt) / *sd_imt + *values_mean_ims;
-    values_LAB_imt += 3;
+  for (int i = 0; i < size_ims; ++i) {
+    values_LAB_ims[i] = *sd_imt * (*values_LAB_ims - *values_mean_ims) / *sd_ims + *values_mean_imt;
   }
-  values_LAB_imt -= size_imt * 3;
-  values_luminance_remapping -= size_imt;
   
-  free(values_LAB_ims);
   free(values_LAB_imt);
   free(values_mean_imt);
   free(values_mean_ims);
   free(sd_imt);  
   free(sd_ims);
   
-  return values_luminance_remapping;
+  return values_LAB_ims;
+  
 }
 
 static float* compute_jittered_sampling(int rows, int cols, float* values_ims, int* nbSamples, int neighborhoodSize) {
@@ -293,8 +271,12 @@ static float* compute_jittered_sampling(int rows, int cols, float* values_ims, i
       if (j >= nbSquaresByCols * nbPixelsBySide) { continue; }
       int random_i = rand()%nbPixelsBySide + i;
       int random_j = rand()%nbPixelsBySide + j;
-      
-      int cpt = 0;
+      random_i = random_i < neighborhoodSize ? neighborhoodSize : random_i;
+      random_j = random_j < neighborhoodSize ? neighborhoodSize : random_j;
+      random_i = random_i >= rows - neighborhoodSize ? rows - neighborhoodSize - 1 : random_i;
+      random_j = random_j >= cols - neighborhoodSize ? cols - neighborhoodSize - 1 : random_j;
+
+      float cpt = 0;
       float mean = 0;
       float sd = 0;
       for (int i2 = random_i - neighborhoodSize; i2 <= random_i + neighborhoodSize; ++i2) {
@@ -302,21 +284,18 @@ static float* compute_jittered_sampling(int rows, int cols, float* values_ims, i
 	for (int j2 = random_j - neighborhoodSize; j2 <= random_j + neighborhoodSize; ++j2) {
 	  if (j2 < 0 || j2 >= cols) { continue; }
 	  int offset = (i2 * cols + j2) * 3;
-	  values_ims += offset;
-	  mean += *values_ims;
-	  sd += *values_ims * *values_ims;
-	  values_ims -= offset;
+	  mean += values_ims[offset];
+	  sd += values_ims[offset] * values_ims[offset];
 	  cpt++;
 	} 
       }
-      mean /= (float)cpt;
-      sd = sqrt(sd / (float)cpt - (mean * mean));
+      mean /= cpt;
+      sd = sqrt(sd / cpt - (mean * mean));
+
       int offset = (random_i * cols + random_j) * 3;
-      values_ims += offset + 1;
-      *jittered_sampling++ = sd;
-      *jittered_sampling++ = *values_ims++;
-      *jittered_sampling++ = *values_ims++;
-      values_ims -= (offset + 3);
+      *jittered_sampling++ = (sd + values_ims[offset]) / 2;
+      *jittered_sampling++ = values_ims[offset + 1];
+      *jittered_sampling++ = values_ims[offset + 2];
     }
   }
   jittered_sampling -= *nbSamples * 3;
@@ -324,6 +303,38 @@ static float* compute_jittered_sampling(int rows, int cols, float* values_ims, i
   return jittered_sampling;
 }
 
+static float* compute_weighted_average(int rows, int cols, float* values_ims, int neighborhoodSize) {  
+  
+  float* values = malloc(3 * rows * cols * sizeof(float));
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      
+      float cpt = 0;
+      float mean = 0;
+      float sd = 0;
+      for (int i2 = i - neighborhoodSize; i2 <= i + neighborhoodSize; ++i2) {
+	if (i2 < 0 || i2 >= rows) { continue; }
+	for (int j2 = j - neighborhoodSize; j2 <= j + neighborhoodSize; ++j2) {
+	  if (j2 < 0 || j2 >= cols) { continue; }
+	  int offset = (i2 * cols + j2) * 3;
+	  mean += values_ims[offset];
+	  sd += values_ims[offset] * values_ims[offset];
+	  cpt++;
+	} 
+      }
+      mean /= cpt;
+      sd = sqrt(sd / cpt - (mean * mean));
+      
+      int offset = (i * cols + j) * 3;
+      *values++ = (sd + values_ims[offset]) / 2;
+      *values++ = values_ims[offset + 1];
+      *values++ = values_ims[offset + 2];
+    }
+  }
+  values -= rows * cols * 3;
+
+  return values;
+}
 
 static void process(char *name_ims, char *name_imt, char* name_imd)
 {
@@ -346,34 +357,26 @@ static void process(char *name_ims, char *name_imt, char* name_imd)
   
   // Step 3 - random jittered grid
   int nbSamples = 230;
-  float* jittered_sampling = compute_jittered_sampling(rows_ims, cols_ims, values_ims, &nbSamples, 2);
+  float* jittered_sampling = compute_jittered_sampling(rows_ims, cols_ims, lum_remapping, &nbSamples, 2);
+  float* values = compute_weighted_average(rows_imt, cols_imt, values_imt, 2);
   printf("step 3 - done!\n");
 
   // Step 4 - Colorization
   for (int i = 0; i < rows_imt; ++i) {
     for (int j = 0; j < cols_imt; ++j) {
-      float best_luminance = 0;
-      float alpha;
-      float beta;
+      float best_dist = 1000;	
+      int offset = (i * cols_imt + j) * 3;
       for (int k = 0; k < nbSamples; ++k) {
-	float value_luminance = 0.5 * (*lum_remapping + *jittered_sampling++);
-	if (abs(*values_imt - value_luminance) < abs(*values_imt - best_luminance)) {
-	  best_luminance = value_luminance;
-	  alpha = *jittered_sampling++;
-	  beta = *jittered_sampling++;
-	} else {
-	  jittered_sampling += 2;
-	}
+	int offset_samples = k * 3;
+	float dist = fabs(values[offset] - jittered_sampling[offset_samples]);
+	if (dist < best_dist) {
+	  best_dist = dist;
+	  values_imt[offset + 1] =  jittered_sampling[offset_samples + 1];
+	  values_imt[offset + 2] = jittered_sampling[offset_samples + 2];
+	} 
       }
-      jittered_sampling -= nbSamples * 3;
-      values_imt++;
-      *values_imt++ = alpha;
-      *values_imt++ = beta;
-      lum_remapping++;
     }
   }
-  lum_remapping -= rows_imt * cols_imt;
-  values_imt -= rows_imt * cols_imt * 3;
   
   printf("step 4 - done!\n");
 

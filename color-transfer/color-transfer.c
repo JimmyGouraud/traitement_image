@@ -15,14 +15,6 @@
 
 #define D 3
 
-/*
-static float ID[D][D] = {
-  {1, 0, 0}, 
-  {0, 1, 0},  
-  {0, 0, 1}
-};
-*/
-
 
 static float RGB2LMS[D][D] = {
   {0.3811, 0.5783, 0.0402}, 
