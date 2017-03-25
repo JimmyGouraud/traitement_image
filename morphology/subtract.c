@@ -11,10 +11,11 @@ void subtract(char* ims1_name, char* ims2_name, char* imd_name) {
   int height = pnm_get_height(ims1);
   pnm imd = pnm_new(width, height, PnmRawPpm);
 
-  for (int i = 0; i < width; ++i) {
-    for (int j = 0; j < height; ++j) {
+  for (int i = 0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
       for (int k = 0; k < 3; ++k) {
-	unsigned short value = pnm_get_component(ims1, i, j, k) - pnm_get_component(ims2, i, j, k);
+	short value = pnm_get_component(ims1, i, j, k) - pnm_get_component(ims2, i, j, k);
+	if (value < 0) { value = 0; }
 	pnm_set_component(imd, i, j, k, value);
       }
     }

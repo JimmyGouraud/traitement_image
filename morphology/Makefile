@@ -14,7 +14,8 @@ BIN=\
 	opening\
 	closing\
 	add\
-	subtract
+	subtract\
+	binarize
 
 all: $(BIN)
 
