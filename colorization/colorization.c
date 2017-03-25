@@ -347,7 +347,6 @@ static void process(char *name_ims, char *name_imt, char* name_imd)
   int cols_imt = pnm_get_width(imt);
   
   // Step 1 - RGB to LAB
-  float* values_ims = convertRGBtoLAB(ims);
   float* values_imt = convertRGBtoLAB(imt);
   printf("step 1 - done!\n");
   

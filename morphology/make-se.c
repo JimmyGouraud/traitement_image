@@ -3,26 +3,24 @@
 
 #include "morphology.h"
 
-void
-usage(char* s)
+void usage(char* s)
 {
-  fprintf(stderr,"%s <se> <hs> <imd>\n",s);
+  fprintf(stderr,"%s <shape> <halfsize> <imd>\n",s);
   exit(EXIT_FAILURE);
 }
 
 #define PARAM 3
-int
-main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
   if(argc != PARAM+1)
     usage(argv[0]);
-
-  int   shape    = atoi(argv[1]);
-  int   hs       = atoi(argv[2]);
+  
+  int shape = atoi(argv[1]);
+  int hs = atoi(argv[2]);
   char* imd_name = argv[3];
-
+  
   pnm imd = se(shape, hs);
-  if(imd==NULL){
+  if(imd == NULL){
     fprintf(stderr,"make-se: imd is NULL, exit\n");
     return EXIT_FAILURE;
   }

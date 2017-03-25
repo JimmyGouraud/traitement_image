@@ -8,11 +8,21 @@ OBJ=morphology.o
 
 BIN=\
 	make-se\
-	labeling
+	labeling\
+	dilation\
+	erosion\
+	opening\
+	closing\
+	add\
+	subtract
 
 all: $(BIN)
 
 make-se: morphology.o
+dilation: morphology.o
+erosion: morphology.o
+opening: morphology.o
+closing: morphology.o
 
 clean:
 	$(RM) $(OBJ) $(BIN) *.ppm
