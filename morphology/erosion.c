@@ -5,8 +5,10 @@
 
 void erosion(int shape, int hs, char* ims_name, char* imd_name) {
   pnm ims = pnm_load(ims_name);
+  int width = pnm_get_width(ims);
+  int height = pnm_get_height(ims);
   
-  pnm imd = pnm_new(pnm_get_width(ims), pnm_get_height(ims), PnmRawPpm);
+  pnm imd = pnm_new(width, height, PnmRawPpm);
   process(shape, hs, ims, imd, lesser);
   
   pnm_save(imd, PnmRawPpm, imd_name);  

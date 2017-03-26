@@ -5,11 +5,13 @@
 
 void dilation(int shape, int hs, char* ims_name, char* imd_name) {
   pnm ims = pnm_load(ims_name);
-  
-  pnm imd = pnm_new(pnm_get_width(ims), pnm_get_height(ims), PnmRawPpm);
+  int width = pnm_get_width(ims);
+  int height = pnm_get_height(ims);
+
+  pnm imd = pnm_new(width, height, PnmRawPpm);
   process(shape, hs, ims, imd, greater);
-  
-  pnm_save(imd, PnmRawPpm, imd_name);  
+
+  pnm_save(imd, PnmRawPpm, imd_name);
   pnm_free(imd);
 }
 
@@ -23,8 +25,8 @@ void usage(char* s)
 int main(int argc, char* argv[])
 {
   if(argc != PARAM+1)
-    usage(argv[0]);
-  
+  usage(argv[0]);
+
   dilation(atoi(argv[1]), atoi(argv[2]), argv[3], argv[4]);
 
   return EXIT_SUCCESS;

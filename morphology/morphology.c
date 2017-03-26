@@ -10,7 +10,7 @@ void create_square(pnm imd) {
   for (int i = 0; i < size; ++i) {
     for (int j = 0; j < size; ++j) {
       for (int k = 0; k < 3; ++k) {
-	pnm_set_component(imd, i, j, k, 255);
+        pnm_set_component(imd, i, j, k, 255);
       }
     }
   }
@@ -19,14 +19,14 @@ void create_square(pnm imd) {
 void create_disk(pnm imd) {
   int size = pnm_get_width(imd);
   int middle = size/2;
-  
+
   for (int i = 0; i < size; ++i) {
     for (int j = 0; j < size; ++j) {
       float dist = sqrt((i-middle) * (i-middle) + (j-middle) * (j - middle));
       if (dist <= middle) {
-	for (int k = 0; k < 3; ++k) {
-	  pnm_set_component(imd, i, j, k, 255);
-	}
+        for (int k = 0; k < 3; ++k) {
+          pnm_set_component(imd, i, j, k, 255);
+        }
       }
     }
   }
@@ -35,14 +35,14 @@ void create_disk(pnm imd) {
 void create_diamond(pnm imd) {
   int size = pnm_get_width(imd);
   int middle = size/2;
-  
+
   for (int i = 0; i < size; ++i) {
     for (int j = 0; j < size; ++j) {
       int dist = abs(i - middle) + abs(j - middle);
       if (dist <= middle) {
-	for (int k = 0; k < 3; ++k) {
-	  pnm_set_component(imd, i, j, k, 255);
-	}
+        for (int k = 0; k < 3; ++k) {
+          pnm_set_component(imd, i, j, k, 255);
+        }
       }
     }
   }
@@ -62,7 +62,7 @@ void create_line_v(pnm imd) {
 void create_line_h(pnm imd) {
   int size = pnm_get_width(imd);
   int middle = size/2;
-  
+
   for (int j = 0; j < size; ++j) {
     for (int k = 0; k < 3; ++k) {
       pnm_set_component(imd, middle, j, k, 255);
@@ -73,7 +73,7 @@ void create_line_h(pnm imd) {
 
 void create_diag_l(pnm imd) {
   int size = pnm_get_width(imd);
-  
+
   for (int i = 0; i < size; ++i) {
     for (int k = 0; k < 3; ++k) {
       pnm_set_component(imd, i, i, k, 255);
@@ -84,7 +84,7 @@ void create_diag_l(pnm imd) {
 
 void create_diag_r(pnm imd) {
   int size = pnm_get_width(imd);
-  
+
   for (int j = 0; j < size; ++j) {
     for (int k = 0; k < 3; ++k) {
       pnm_set_component(imd, size - j - 1, j, k, 255);
@@ -108,33 +108,33 @@ void create_plus(pnm imd)
 pnm se(int s, int hs) {
   int size = hs * 2 + 1;
   pnm imd = pnm_new(size, size, PnmRawPpm);
-  
+
   switch(s) {
-  case SQUARE:
+    case SQUARE:
     create_square(imd);
     break;
-  case DIAMOND:
+    case DIAMOND:
     create_diamond(imd);
     break;
-  case DISK:
+    case DISK:
     create_disk(imd);
     break;
-  case LINE_V:
+    case LINE_V:
     create_line_v(imd);
     break;
-  case DIAG_R:
+    case DIAG_R:
     create_diag_r(imd);
     break;
-  case LINE_H:
+    case LINE_H:
     create_line_h(imd);
     break;
-  case DIAG_L:
+    case DIAG_L:
     create_diag_l(imd);
     break;
-  case CROSS:
+    case CROSS:
     create_cross(imd);
     break;
-  case PLUS:
+    case PLUS:
     create_plus(imd);
     break;
   }
@@ -146,6 +146,7 @@ void lesser(unsigned short val, unsigned short* min) {
   if (*min > val) {
     *min = val;
   }
+
 }
 
 void greater(unsigned short val, unsigned short* max) {
@@ -165,18 +166,18 @@ void process(int s, int hs, pnm ims, pnm imd, void (*pf)(unsigned short, unsigne
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
       for (int k = 0; k < 3; ++k) {
-	unsigned short value = pnm_get_component(ims, i, j, k);
-	for (int i2 = 0; i2 < size; ++i2) {
-	  int tmp_i = i + i2 - hs;
-	  if (tmp_i < 0 || tmp_i >= height) { continue; }
-	  for (int j2 = 0; j2 < size; ++j2) {
-	    int tmp_j = j + j2 - hs;
-	    if (tmp_j < 0 || tmp_j >= width) { continue; }
-	    if (pnm_get_component(elem, i2, j2, k) == 0) { continue; }
-	    (*pf)(pnm_get_component(ims, tmp_i, j + j2 - hs, k), &value);
-	  }
-	}
-	pnm_set_component(imd, i, j, k, value);
+        unsigned short value = pnm_get_component(ims, i, j, k);
+        for (int i2 = 0; i2 < size; ++i2) {
+          int tmp_i = i + i2 - hs;
+          if (tmp_i < 0 || tmp_i >= height) { continue; }
+          for (int j2 = 0; j2 < size; ++j2) {
+            int tmp_j = j + j2 - hs;
+            if (tmp_j < 0 || tmp_j >= width) { continue; }
+            if (pnm_get_component(elem, i2, j2, k) == 0) { continue; }
+            (*pf)(pnm_get_component(ims, tmp_i, tmp_j, k), &value);
+          }
+        }
+        pnm_set_component(imd, i, j, k, value);
       }
     }
   }

@@ -13,18 +13,18 @@ void subtract(int min, int max, char* ims_name, char* imd_name) {
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
       for (int k = 0; k < 3; ++k) {
-	unsigned short value = pnm_get_component(ims, i, j, k);
-	if (value < min || value > max) {
-	  pnm_set_component(imd, i, j, k, 0);
-	} else {
-	  pnm_set_component(imd, i, j, k, 255);
-	}
-	
+        unsigned short value = pnm_get_component(ims, i, j, k);
+        if (value < min || value > max) {
+          pnm_set_component(imd, i, j, k, 0);
+        } else {
+          pnm_set_component(imd, i, j, k, 255);
+        }
+
       }
     }
   }
-  
-  pnm_save(imd, PnmRawPpm, imd_name);  
+
+  pnm_save(imd, PnmRawPpm, imd_name);
   pnm_free(imd);
 }
 
@@ -38,8 +38,8 @@ void usage(char* s)
 int main(int argc, char* argv[])
 {
   if(argc != PARAM+1)
-    usage(argv[0]);
-  
+  usage(argv[0]);
+
   subtract(atoi(argv[1]), atoi(argv[2]), argv[3], argv[4]);
 
   return EXIT_SUCCESS;

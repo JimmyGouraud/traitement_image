@@ -15,7 +15,8 @@ BIN=\
 	closing\
 	add\
 	subtract\
-	binarize
+	binarize\
+	labeling-color
 
 all: $(BIN)
 
