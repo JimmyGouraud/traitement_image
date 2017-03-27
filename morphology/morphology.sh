@@ -15,9 +15,9 @@ ims='../data/lena-gray.ppm'
 
 
 # dilation / erosion <shape> <halfsize> <ims> <imd>
-./dilation 2 10 $ims dilation_square.ppm; pvisu dilation_square.ppm;
+./dilation 2 10 $ims dilation_circle.ppm; pvisu dilation_circle.ppm;
 ./dilation 7 10 $ims dilation_cross.ppm; pvisu dilation_cross.ppm;
-./erosion 2 10 $ims erosion_square.ppm; pvisu erosion_square.ppm;
+./erosion 2 10 $ims erosion_circle.ppm; pvisu erosion_circle.ppm;
 ./erosion 7 10 $ims erosion_cross.ppm; pvisu erosion_cross.ppm;
 
 
