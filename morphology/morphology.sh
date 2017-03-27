@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ims='../data/lena-gray.ppm'
+ims='../data/lena-color.ppm'
 
 # make-se <shape> <halfsize> <imd>
 ./make-se 0 20 0.ppm; pvisu 0.ppm;

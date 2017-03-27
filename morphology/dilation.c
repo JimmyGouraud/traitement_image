@@ -3,7 +3,8 @@
 
 #include "morphology.h"
 
-void dilation(int shape, int hs, char* ims_name, char* imd_name) {
+void dilation(int shape, int hs, char* ims_name, char* imd_name)
+{
   pnm ims = pnm_load(ims_name);
   int width = pnm_get_width(ims);
   int height = pnm_get_height(ims);
@@ -12,6 +13,8 @@ void dilation(int shape, int hs, char* ims_name, char* imd_name) {
   process(shape, hs, ims, imd, greater);
 
   pnm_save(imd, PnmRawPpm, imd_name);
+
+  pnm_free(ims);
   pnm_free(imd);
 }
 

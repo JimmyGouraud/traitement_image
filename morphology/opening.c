@@ -14,9 +14,11 @@ void opening(int shape, int hs, char* ims_name, char* imd_name) {
   pnm imd = pnm_new(width, height, PnmRawPpm);
   process(shape, hs, ims_lesser, imd, greater);
   
-  pnm_save(imd, PnmRawPpm, imd_name);  
-  pnm_free(imd);
+  pnm_save(imd, PnmRawPpm, imd_name);
+  
   pnm_free(ims);
+  pnm_free(ims_lesser);
+  pnm_free(imd);
 }
 
 void usage(char* s)

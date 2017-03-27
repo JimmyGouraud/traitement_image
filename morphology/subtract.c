@@ -6,11 +6,11 @@
 void subtract(char* ims1_name, char* ims2_name, char* imd_name) {
   pnm ims1 = pnm_load(ims1_name);
   pnm ims2 = pnm_load(ims2_name);
-
+  
   int width = pnm_get_width(ims1);
   int height = pnm_get_height(ims1);
   pnm imd = pnm_new(width, height, PnmRawPpm);
-
+  
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
       for (int k = 0; k < 3; ++k) {
@@ -21,8 +21,15 @@ void subtract(char* ims1_name, char* ims2_name, char* imd_name) {
     }
   }
   
-  pnm_save(imd, PnmRawPpm, imd_name);  
+  pnm_save(imd, PnmRawPpm, imd_name);
+  
+  pnm_free(ims1);
+  pnm_free(ims2);
   pnm_free(imd);
+
+  (void) ims1_name;
+  (void) ims2_name;
+  (void) imd_name;
 }
 
 void usage(char* s)

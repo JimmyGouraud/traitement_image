@@ -15,6 +15,9 @@ void closing(int shape, int hs, char* ims_name, char* imd_name) {
   process(shape, hs, ims_greater, imd, lesser);
 
   pnm_save(imd, PnmRawPpm, imd_name);
+
+  pnm_free(ims);
+  pnm_free(ims_greater);
   pnm_free(imd);
 }
 

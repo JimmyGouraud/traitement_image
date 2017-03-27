@@ -77,7 +77,8 @@ void process(char* ims_name, char* imd_name)
       ps++;
     }
   }
-  
+  ps -= width * height;
+
   for(int p = 0; p < width*height; p++) { 
     roots[p] = _find(p, roots);
   }
@@ -122,6 +123,8 @@ void process(char* ims_name, char* imd_name)
   
   pnm_save(imd, PnmRawPpm, imd_name);  
 
+  free(ps);
+  free(roots_color);
   pnm_free(ims);
   pnm_free(imd);
 }

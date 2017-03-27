@@ -160,12 +160,12 @@ void process(int s, int hs, pnm ims, pnm imd, void (*pf)(unsigned short, unsigne
   int height = pnm_get_height(ims);
 
   pnm elem = se(s, hs);
-  int size = hs * 2 + 1;
+  int size = pnm_get_width(elem);
 
   unsigned short* imd_value = pnm_get_image(imd);
   unsigned short* ims_value = pnm_get_image(ims);
   unsigned short* elem_value = pnm_get_image(elem);
-  
+
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
       for (int k = 0; k < 3; ++k) {
@@ -185,4 +185,6 @@ void process(int s, int hs, pnm ims, pnm imd, void (*pf)(unsigned short, unsigne
       }
     }
   }
+
+  pnm_free(elem);
 }

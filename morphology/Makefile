@@ -20,11 +20,11 @@ BIN=\
 
 all: $(BIN)
 
-make-se: morphology.o
-dilation: morphology.o
-erosion: morphology.o
-opening: morphology.o
-closing: morphology.o
+make-se:  $(OBJ)
+dilation: $(OBJ)
+erosion:  $(OBJ)
+opening:  $(OBJ)
+closing:  $(OBJ)
 
 clean:
 	$(RM) $(OBJ) $(BIN) *.ppm

@@ -19,12 +19,13 @@ void subtract(int min, int max, char* ims_name, char* imd_name) {
         } else {
           pnm_set_component(imd, i, j, k, 255);
         }
-
       }
     }
   }
 
   pnm_save(imd, PnmRawPpm, imd_name);
+  
+  pnm_free(ims);
   pnm_free(imd);
 }
 
