@@ -96,7 +96,7 @@ void process(char* ims_name, char* imd_name)
   int *roots_color = malloc(3 * l * sizeof(int));
   for (int i = 0; i < l; ++i) {
     for (int k = 0; k < 3; k++) {
-      roots_color[i * 3 + k] = rand()%255;
+      roots_color[i * 3 + k] = rand()%256;
     }
   }
   
