@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ims='../data/lena-color.ppm'
+ims='../data/lena-gray.ppm'
 
 # make-se <shape> <halfsize> <imd>
 ./make-se 0 20 0.ppm; pvisu 0.ppm;
@@ -27,12 +27,12 @@ ims='../data/lena-color.ppm'
 ./closing 2 10 $ims closing_square.ppm; pvisu closing_square.ppm;
 ./closing 7 10 $ims closing_cross.ppm; pvisu closing_cross.ppm;
 
-
 # add / subtract <ims-1> <ims-2> <imd>
 ## gradient morphologique
 ./dilation 2 2 $ims a.ppm; pvisu a.ppm;
 ./erosion 2 2 $ims b.ppm; pvisu b.ppm;
 ./subtract a.ppm b.ppm c.ppm; pvisu c.ppm;
+
 
 ## Laplacien morphologique
 ./add a.ppm b.ppm d.ppm;
@@ -48,10 +48,10 @@ ims='../data/lena-color.ppm'
 ./binarize 125 255 extract.ppm binarize_extract.ppm; 
 
 
-# ./labeling-color <ims> <imd>
+# labeling-color
 ./labeling-color binarize_extract.ppm extract-color.ppm; pvisu extract-color.ppm
 
 
 # Extension à la couleur
-./dilation 2 3 ../data/mm-color.ppm dilation_lex.ppm; pvisu dilation_lex.ppm 
-./erosion 2 3 ../data/mm-color.ppm erosion_lex.ppm; pvisu erosion_lex.ppm
+./dilation 2 3 ../data/mm-color.ppm dilation_marg.ppm; pvisu dilation_marg.ppm 
+./erosion 2 3 ../data/mm-color.ppm erosion_marg.ppm; pvisu erosion_marg.ppm

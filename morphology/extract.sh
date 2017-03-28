@@ -1,13 +1,11 @@
 #!/bin/bash
 
-ims='../data/gear.ppm'
-
-pvisu $ims
+pvisu $1
 
 # Etape 1 : Ouverture
-./opening 2 10 $ims opening.ppm
+./opening 2 10 $1 opening.ppm
 pvisu opening.ppm
 
 #Etape 2 : soustraction
-./subtract $ims opening.ppm extract.ppm
+./subtract $1 opening.ppm extract.ppm
 pvisu extract.ppm

@@ -11,7 +11,9 @@ void erosion(int shape, int hs, char* ims_name, char* imd_name) {
   pnm imd = pnm_new(width, height, PnmRawPpm);
   process(shape, hs, ims, imd, lesser);
   
-  pnm_save(imd, PnmRawPpm, imd_name);  
+  pnm_save(imd, PnmRawPpm, imd_name);
+  
+  pnm_free(ims);
   pnm_free(imd);
 }
 
