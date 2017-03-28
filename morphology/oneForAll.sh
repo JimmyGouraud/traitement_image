@@ -41,7 +41,7 @@ ims='../data/lena-gray.ppm'
 
 
 # extract.sh
-./extract.sh
+./extract.sh ../data/gear.ppm
 
 
 # binarize
