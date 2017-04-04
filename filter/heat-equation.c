@@ -4,21 +4,22 @@
 
 #include <bcl.h>
 
-static pnm float_to_pnm(int rows, int cols, float* values_ims)
+static pnm float_to_pnm(float* values_ims, int height, int width)
 {
-  pnm ims = pnm_new(cols, rows, PnmRawPpm);
+  pnm ims = pnm_new(width, height, PnmRawPpm);
+  
   unsigned short value;
-  for (int i = 0; i < rows; ++i) {
-    for (int j = 0; j < cols; ++j) {
-      int index = (i * cols + j) * 3;
+  for (int i = 0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+      int index = i * width + j;
+      if (values_ims[index] < 0) {
+	value = 0;
+      } else if (values_ims[index] > 255) {
+	value = 255;
+      } else {
+	value = (unsigned short) round(values_ims[index]);
+      }
       for (int k = 0; k < 3; ++k) {
-	if (values_ims[index + k] < 0) {
-	  value = 0;
-	} else if (values_ims[index + k] > 255) {
-	  value = 255;
-	} else {
-	  value = (unsigned short) round(values_ims[index + k]);
-	}
 	pnm_set_component(ims, i, j, k, value);
       }
     }
@@ -27,41 +28,36 @@ static pnm float_to_pnm(int rows, int cols, float* values_ims)
   return ims;
 }
 
+
 static float* pnm_to_float(pnm ims)
 {
-  int rows = pnm_get_height(ims);
-  int cols = pnm_get_width(ims);
+  int height = pnm_get_height(ims);
+  int width = pnm_get_width(ims);
   
-  float* values_ims = malloc(rows * cols * 3 * sizeof(float));
-  for (int i = 0; i < rows; ++i) {
-    for (int j = 0; j < cols; ++j) {
-      int index = (i * cols + j) * 3;
-      for (int k = 0; k < 3; ++k) {
-	values_ims[index + k] = (float) pnm_get_component(ims, i, j, k);
-      }
+  float* values_ims = malloc(height * width * sizeof(float));
+  for (int i = 0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+      values_ims[i * width + j] = (float) pnm_get_component(ims, i, j, 0);
     }
   }
   
   return values_ims;
 }
 
+
 static float laplacien(float* values_ims, int width, int height, int i, int j)
 {
-  int index = (i * width + j) * 3;
-  
+  int index = i * width + j;
+
   float value = -4 * values_ims[index];
-  value += (i == 0) ? values_ims[index] : values_ims[index - width * 3];
-  value += (i == height - 1) ? values_ims[index] : values_ims[index + width * 3];
-  value += (j == 0) ? values_ims[index] :  values_ims[index - 1 * 3];
-  value += (j == width - 1) ? values_ims[index] :  values_ims[index + 1 * 3];
+  value += (i == 0)          ? values_ims[index] : values_ims[index - width];
+  value += (i == height - 1) ? values_ims[index] : values_ims[index + width];
+  value += (j == 0)          ? values_ims[index] : values_ims[index - 1];
+  value += (j == width - 1)  ? values_ims[index] : values_ims[index + 1];
     
   return value;
 }
 
-static float delta(float* values_ims, int width, int height, int i, int j)
-{
-  return 0.25 * laplacien(values_ims, width, height, i, j) + values_ims[(i * width + j) * 3];
-}
 
 static void process(int n, char* ims_name, char* imd_name)
 {
@@ -70,26 +66,30 @@ static void process(int n, char* ims_name, char* imd_name)
   int height = pnm_get_height(ims);
   
   float* values_imd = pnm_to_float(ims);
+  float* values_tmp = malloc(height * width * sizeof(float));
   for (; n > 0; --n) {
-    float* values_tmp = pnm_to_float(ims);
     for (int i = 0; i < height; ++i) {
       for (int j = 0; j < width; ++j) {
-	float value = delta(values_imd, width, height, i, j);
-	for (int k = 0; k < 3; ++k) {
-	  values_tmp[(i * width + j) * 3 + k] = value; 
-	}
+	values_tmp[i * width + j] = 0.25 * laplacien(values_imd, width, height, i, j) + values_imd[i * width + j];
       }
     }
-    free(values_imd);
-    values_imd = values_tmp;
+    
+    for (int i = 0; i < height; ++i) {
+      for (int j = 0; j < width; ++j) {
+	values_imd[i * width + j] = values_tmp[i * width + j];
+      }
+    }
   }
     
-  pnm imd = float_to_pnm(height, width, values_imd);
+  pnm imd = float_to_pnm(values_imd, height, width);
   pnm_save(imd, PnmRawPpm, imd_name);
   
   pnm_free(ims);
   pnm_free(imd);
+  free(values_tmp);
+  free(values_imd);
 }
+
 
 void usage (char *s)
 {
