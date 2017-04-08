@@ -4,7 +4,7 @@
 
 #include <bcl.h>
 
-static pnm float_to_pnm(float* values_ims, int height, int width)
+static pnm float_to_pnm(float* values_ims, int width, int height)
 {
   pnm ims = pnm_new(width, height, PnmRawPpm);
   
@@ -112,7 +112,23 @@ static void diffusion(float* values_imd, float* values_gradient, int lambda, int
 }
 
 static void process(int n, int lambda, int function, char* ims_name, char* imd_name)
-{ 
+{        
+  float (*c)(int, float);
+  switch(function) {
+  case 0:
+    c = c0;
+    break;
+  case 1:
+    c = c1;
+    break;
+  case 2:
+    c = c2;
+    break;
+  default:
+    fprintf(stderr, "<n> must be between 0 and 2.\n");
+    exit(EXIT_FAILURE);
+  }
+  
   pnm ims = pnm_load(ims_name);
   int width = pnm_get_width(ims);
   int height = pnm_get_height(ims);
@@ -120,23 +136,11 @@ static void process(int n, int lambda, int function, char* ims_name, char* imd_n
   float* values_imd = pnm_to_float(ims);
   float* values_gradient = malloc(height * width * 2 * sizeof(float));
   for (; n > 0; --n) {
-    switch(function) {
-    case 0:
-      compute_gradient(values_imd, values_gradient, c0, lambda, width, height);
-      break;
-    case 1:
-      compute_gradient(values_imd, values_gradient, c1, lambda, width, height);
-      break;
-    case 2:
-      compute_gradient(values_imd, values_gradient, c2, lambda, width, height);
-      break;
-    default:
-      return;
-    }
+    compute_gradient(values_imd, values_gradient, c, lambda, width, height);
     diffusion(values_imd, values_gradient, lambda, width, height);
   }
     
-  pnm imd = float_to_pnm(values_imd, height, width);
+  pnm imd = float_to_pnm(values_imd, width, height);
   pnm_save(imd, PnmRawPpm, imd_name);
   
   pnm_free(ims);

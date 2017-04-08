@@ -4,7 +4,7 @@
 
 #include <bcl.h>
 
-static pnm float_to_pnm(float* values_ims, int height, int width)
+static pnm float_to_pnm(float* values_ims, int width, int height)
 {
   pnm ims = pnm_new(width, height, PnmRawPpm);
   
@@ -58,6 +58,24 @@ static float laplacien(float* values_ims, int width, int height, int i, int j)
   return value;
 }
 
+static void diffusion(float* values_imd, float* values_tmp, int width, int height)
+{
+  for (int i = 0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+      values_imd[i * width + j] += 0.25 * laplacien(values_tmp, width, height, i, j);
+    }
+  }
+}
+
+static void copy_values(float* values_ims, float* values_imd, int width, int height)
+{
+  for (int i = 0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+      int index = i * width + j;
+      values_imd[index] = values_ims[index];
+    }
+  }
+}
 
 static void process(int n, char* ims_name, char* imd_name)
 {
@@ -66,28 +84,19 @@ static void process(int n, char* ims_name, char* imd_name)
   int height = pnm_get_height(ims);
   
   float* values_imd = pnm_to_float(ims);
-  float* values_tmp = malloc(height * width * sizeof(float));
+  float* values_imd_tmp = malloc(height * width * sizeof(float));
   for (; n > 0; --n) {
-    for (int i = 0; i < height; ++i) {
-      for (int j = 0; j < width; ++j) {
-	values_tmp[i * width + j] = 0.25 * laplacien(values_imd, width, height, i, j) + values_imd[i * width + j];
-      }
-    }
-    
-    for (int i = 0; i < height; ++i) {
-      for (int j = 0; j < width; ++j) {
-	values_imd[i * width + j] = values_tmp[i * width + j];
-      }
-    }
+    copy_values(values_imd, values_imd_tmp, width, height);
+    diffusion(values_imd, values_imd_tmp, width, height);
   }
     
-  pnm imd = float_to_pnm(values_imd, height, width);
+  pnm imd = float_to_pnm(values_imd, width, height);
   pnm_save(imd, PnmRawPpm, imd_name);
   
   pnm_free(ims);
   pnm_free(imd);
-  free(values_tmp);
   free(values_imd);
+  free(values_imd_tmp);
 }
 
 
