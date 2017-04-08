@@ -1,12 +1,13 @@
 ROOT=../bcl
 
-CFLAGS=-Wall -Wextra -Werror -std=c99 -I$(ROOT)/include 
+CFLAGS= -Wextra -Werror -std=c99 -I$(ROOT)/include 
 LDFLAGS=-L$(ROOT)/lib
 LDLIBS=-lm -lfftw3 -lbcl
 
 OBJ=fft.o
-BIN=heat-equation\
-	butterworth
+BIN=	heat-equation\
+	butterworth\
+	anisotropic-diffusion
 
 all: $(BIN)
 
