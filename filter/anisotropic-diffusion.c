@@ -153,7 +153,7 @@ static void process(int n, int lambda, int function, char* ims_name, char* imd_n
 
 void usage (char *s)
 {
-  fprintf(stderr, "Usage: %s <n> <ims> <imd>\n", s);
+  fprintf(stderr, "Usage: %s <n> <lambda> <function> <ims> <imd>\n", s);
   exit(EXIT_FAILURE);
 }
 
