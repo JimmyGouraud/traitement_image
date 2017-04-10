@@ -8,7 +8,8 @@ OBJ=fft.o
 BIN=	heat-equation\
 	butterworth\
 	anisotropic-diffusion\
-	median
+	median\
+	bilateral
 
 all: $(BIN)
 
