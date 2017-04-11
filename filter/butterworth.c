@@ -6,59 +6,47 @@
 #include "fft.h"
 
 
-static float lowpass(int u, int v, int d0, int n, int w, int u0, int v0){
-  (void)u;
-  (void)v;
-  (void)d0;
-  (void)n;
-  (void)w;
-  (void)u0;
-  (void)v0;  
-  return 0.0;
+static float lowpass(int u, int v, int d0, int n, int w, int u0, int v0)
+{
+  (void) w;
+  (void) u0;
+  (void) v0;
+
+  float duv = u*u + v*v;
+  return 1 / (1 + pow(sqrt(duv) / d0, 2*n));
 }
 
-static float highpass(int u, int v, int d0, int n, int w, int u0, int v0){
-  (void)u;
-  (void)v;
-  (void)d0;
-  (void)n;
-  (void)w;
-  (void)u0;
-  (void)v0;  
-  return 0.0;
+static float highpass(int u, int v, int d0, int n, int w, int u0, int v0)
+{
+  (void) w;
+  (void) u0;
+  (void) v0;
+
+  float duv = u*u + v*v;
+  return 1 / (1 + pow(d0 / sqrt(duv), 2*n));
 }
 
-static float bandreject(int u, int v, int d0, int n, int w, int u0, int v0){
-  (void)u;
-  (void)v;
-  (void)d0;
-  (void)n;
-  (void)w;
-  (void)u0;
-  (void)v0;  
-  return 0.0;
+static float bandreject(int u, int v, int d0, int n, int w, int u0, int v0)
+{
+  (void) u0;
+  (void) v0;
+  
+  float duv = u*u + v*v;
+  return 1 / (1 + pow((sqrt(duv) * w) / (duv*duv - d0*d0), 2*n));
 }
 
-static float bandpass(int u, int v, int d0, int n, int w, int u0, int v0){
-  (void)u;
-  (void)v;
-  (void)d0;
-  (void)n;
-  (void)w;
-  (void)u0;
-  (void)v0;  
-  return 0.0;
+static float bandpass(int u, int v, int d0, int n, int w, int u0, int v0)
+{
+  return 1 - bandreject(u, v, d0, n, w, u0, v0);
 }
 
-static float notch(int u, int v, int d0, int n, int w, int u0, int v0){
-  (void)u;
-  (void)v;
-  (void)d0;
-  (void)n;
+static float notch(int u, int v, int d0, int n, int w, int u0, int v0)
+{
   (void)w;
-  (void)u0;
-  (void)v0;  
-  return 0.0;
+  
+  float d1uv = sqrt((u-u0)*(u-u0) + (v-v0)*(v-v0));
+  float d2uv = sqrt((u+u0)*(u+u0) + (v+v0)*(v+v0));
+  return 1 / (1 + pow(d0*d0 / d1uv*d2uv, 2*n));
 }
 
 static void 
@@ -66,6 +54,7 @@ process(char* inp, char* out,
 	int d0, int nx2, int ww, int u0, int v0,
 	float (*apply)(int, int, int, int, int, int, int))  
 {
+  
   (void)inp;
   (void)out;
   (void)d0;
@@ -88,14 +77,14 @@ int main(int argc, char *argv[]){
   if (argc != param+1) 
     usage(argv[0]);
   int idx=1;
-  char* ims     = argv[idx++];
-  char* imd     = argv[idx++];
-  char* f_name  = argv[idx++];
-  int   d0      = atoi(argv[idx++]);
-  int   n       = atoi(argv[idx++]);
-  int   w       = atoi(argv[idx++]);
-  int   u0      = atoi(argv[idx++]);
-  int   v0      = atoi(argv[idx++]);
+  char* ims = argv[idx++];
+  char* imd = argv[idx++];
+  char* f_name = argv[idx++];
+  int d0 = atoi(argv[idx++]);
+  int n = atoi(argv[idx++]);
+  int w = atoi(argv[idx++]);
+  int u0 = atoi(argv[idx++]);
+  int v0 = atoi(argv[idx++]);
   n*=2;
   if(strcmp(f_name, "lp")==0){
     process(ims, imd, d0, n, w, u0, v0, &lowpass);

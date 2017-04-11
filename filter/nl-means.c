@@ -47,7 +47,7 @@ static float* pnm_to_float(pnm ims)
 
 static int dist(int i, int j, int i2, int j2)
 {
-  return abs(i * i2 + j - j2);
+  return abs(i - i2 + j - j2);
 }
 
 static void process(int sigma, char* ims_name, char* imd_name)
@@ -84,9 +84,15 @@ static void process(int sigma, char* ims_name, char* imd_name)
 	    for (int v = -r; v <= r; ++v) {
 	      if (pj + v < 0 || pj + v >= width ||
 		  qj + v < 0 || qj + v >= width) { continue; }
-	      if (dist(pi, pj, u, v) <= r || dist(qi, qj, u, v) <= r) {
-		nb_pixel++;
-	      }
+
+	      // Si le pixel est en commun
+	      //if (abs(pi + u - qi) <= r && abs(pj + v - qj) <= r) { nb_pixel++; }
+	      nb_pixel++;
+	      
+	      // Si le pixel sort du voisinage
+	      if (qi + u < pi - hs || qi + u > pi + hs ||
+		  qj + v < pj - hs || qj + v > pj + hs) { continue; }
+
 	      int index_pi = (pi + u) * width + pj + v;
 	      int index_qi = (qi + u) * width + qj + v;
 	      value_d += (ims_values[index_pi] - ims_values[index_qi])
@@ -94,7 +100,7 @@ static void process(int sigma, char* ims_name, char* imd_name)
 	    }
 	  }
 
-	  value_d /= (size_r * size_r - nb_pixel);
+	  value_d /= nb_pixel;
 	  float w = exp(-value_d/(2 * sigma * sigma));
 	  value_c += w;
 	  value_sum += w * ims_values[qi * width + qj];
