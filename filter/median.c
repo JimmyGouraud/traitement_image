@@ -47,7 +47,7 @@ static int compare(const void* a, const void* b)
 static unsigned short median(unsigned short *neighborhoods, int nb_heighbors)
 {
   qsort(neighborhoods, nb_heighbors, sizeof(unsigned short), compare);
-  return neighborhoods[nb_heighbors/2];
+  return neighborhoods[nb_heighbors/2 - 1];
 }
 
 static void process(int hs, char* ims_name, char* imd_name)
@@ -64,13 +64,11 @@ static void process(int hs, char* ims_name, char* imd_name)
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
       int nb_heighbors = 0;
-      for (int i2 = 0; i2 < size; ++i2) {
-	int tmp_i = i + i2 - hs;
-	if (tmp_i < 0 || tmp_i >= height) { continue; }
-	for (int j2 = 0; j2 < size; ++j2) {
-	  int tmp_j = j + j2 - hs;
-	  if (tmp_j < 0 || tmp_j >= width) { continue; }
-	  neighborhoods[nb_heighbors] = values_ims[tmp_i * width + tmp_j];
+      for (int i2 = i - hs; i2 <= i + hs; ++i2) {
+	if (i2 < 0 || i2 >= height) { continue; }
+	for (int j2 = j - hs; j2 <= j + hs; ++j2) {
+	  if (j2 < 0 || j2 >= width) { continue; }
+	  neighborhoods[nb_heighbors] = values_ims[i2 * width + j2];
 	  nb_heighbors++;
 	}
       }

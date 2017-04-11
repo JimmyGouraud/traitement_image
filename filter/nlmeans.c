@@ -59,6 +59,7 @@ static void process(int sigma, char* ims_name, char* imd_name)
   int hs = 5;
   int r = 3;
   int size_r = 7; // (2 * 3 + 1)
+  int precompute_sigma = 2 * sigma * sigma;
   
   float* ims_values = pnm_to_float(ims);
   float* imd_values = malloc(width * height * sizeof(float));
@@ -75,7 +76,7 @@ static void process(int sigma, char* ims_name, char* imd_name)
 	for (int qj = pj - hs; qj <= pj + hs; ++qj) {
 	  if (qj < 0 || qj >= width) { continue; }
 
-	  int nb_pixel = 0; // nb de pixel en commun
+	  int nb_pixel = 0;
 	  float value_d = 0;
 	  // On parcourt chaque pixel du patch
 	  for (int u = -r; u <= r; ++u) {
@@ -84,24 +85,18 @@ static void process(int sigma, char* ims_name, char* imd_name)
 	    for (int v = -r; v <= r; ++v) {
 	      if (pj + v < 0 || pj + v >= width ||
 		  qj + v < 0 || qj + v >= width) { continue; }
-
-	      // Si le pixel est en commun
-	      //if (abs(pi + u - qi) <= r && abs(pj + v - qj) <= r) { nb_pixel++; }
-	      nb_pixel++;
 	      
-	      // Si le pixel sort du voisinage
-	      if (qi + u < pi - hs || qi + u > pi + hs ||
-		  qj + v < pj - hs || qj + v > pj + hs) { continue; }
+	      nb_pixel++;
 
 	      int index_pi = (pi + u) * width + pj + v;
 	      int index_qi = (qi + u) * width + qj + v;
-	      value_d += (ims_values[index_pi] - ims_values[index_qi])
-		* (ims_values[index_pi] - ims_values[index_qi]);
+	      value_d += (ims_values[index_pi] - ims_values[index_qi]) *
+		(ims_values[index_pi] - ims_values[index_qi]);
 	    }
 	  }
 
 	  value_d /= nb_pixel;
-	  float w = exp(-value_d/(2 * sigma * sigma));
+	  float w = exp(-value_d/precompute_sigma);
 	  value_c += w;
 	  value_sum += w * ims_values[qi * width + qj];
 	}

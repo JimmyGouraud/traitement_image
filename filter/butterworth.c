@@ -12,8 +12,8 @@ static float lowpass(int u, int v, int d0, int n, int w, int u0, int v0)
   (void) u0;
   (void) v0;
 
-  float duv = u*u + v*v;
-  return 1 / (1 + pow(sqrt(duv) / d0, 2*n));
+  float duv = sqrt(u*u + v*v);
+  return 1 / (1 + pow(duv / d0, 2*n));
 }
 
 static float highpass(int u, int v, int d0, int n, int w, int u0, int v0)
@@ -22,8 +22,8 @@ static float highpass(int u, int v, int d0, int n, int w, int u0, int v0)
   (void) u0;
   (void) v0;
 
-  float duv = u*u + v*v;
-  return 1 / (1 + pow(d0 / sqrt(duv), 2*n));
+  float duv = sqrt(u*u + v*v);
+  return 1 / (1 + pow(d0 / duv, 2*n));
 }
 
 static float bandreject(int u, int v, int d0, int n, int w, int u0, int v0)
@@ -31,8 +31,8 @@ static float bandreject(int u, int v, int d0, int n, int w, int u0, int v0)
   (void) u0;
   (void) v0;
   
-  float duv = u*u + v*v;
-  return 1 / (1 + pow((sqrt(duv) * w) / (duv*duv - d0*d0), 2*n));
+  float duv = sqrt(u*u + v*v);
+  return 1 / (1 + pow((duv * w) / (duv*duv - d0*d0), 2*n));
 }
 
 static float bandpass(int u, int v, int d0, int n, int w, int u0, int v0)
@@ -46,24 +46,60 @@ static float notch(int u, int v, int d0, int n, int w, int u0, int v0)
   
   float d1uv = sqrt((u-u0)*(u-u0) + (v-v0)*(v-v0));
   float d2uv = sqrt((u+u0)*(u+u0) + (v+v0)*(v+v0));
-  return 1 / (1 + pow(d0*d0 / d1uv*d2uv, 2*n));
+  return 1 / (1 + pow(d0*d0 / (d1uv*d2uv), 2*n));
+}
+
+static pnm create_imd (int rows, int cols, unsigned short *fftw_backward)
+{
+  pnm imd = pnm_new(cols, rows, PnmRawPpm);
+  
+  for (int k = 0; k < 3; k++) {
+    pnm_set_channel(imd, fftw_backward, k);
+  }
+
+  return imd;
 }
 
 static void 
-process(char* inp, char* out, 
-	int d0, int nx2, int ww, int u0, int v0,
+process(char* ims_name, char* imd_name, 
+	int d0, int n, int w, int u0, int v0,
 	float (*apply)(int, int, int, int, int, int, int))  
 {
+  pnm ims = pnm_load(ims_name);
+
+  int height = pnm_get_height(ims);
+  int width = pnm_get_width(ims);
   
-  (void)inp;
-  (void)out;
-  (void)d0;
-  (void)nx2;
-  (void)ww;
-  (void)u0;
-  (void)v0;
-  (void)apply;
+  unsigned short* channel = malloc(height * width * sizeof(unsigned short));
+  pnm_get_channel(ims, channel, 0);
+
+  fftw_complex* fftw_forward = forward(height, width, channel);
   
+  float *as = malloc(height * width * sizeof(float));
+  float *ps = malloc(height * width * sizeof(float));
+  freq2spectra(height, width, fftw_forward, as, ps);
+  
+  for (int i = 0; i < height; ++i) {
+    for (int j = 0; j < width; ++j) {
+      as[i * width + j] *= apply(j - width/2, i - height/2, d0, n, w, u0, v0);
+    }
+  }
+  
+  spectra2freq(height, width, as, ps, fftw_forward);
+  
+  unsigned short* fftw_backward = backward(height, width, fftw_forward);
+  pnm imd = create_imd(height, width, fftw_backward);
+
+  pnm_save(imd, PnmRawPpm, imd_name);
+
+  // Free memory
+  pnm_free(ims);
+  pnm_free(imd);
+  free(as);
+  free(ps);
+  fftw_free(fftw_forward);
+  fftw_free(fftw_backward);
+  free(channel);
 }
 
 void usage (char *s){

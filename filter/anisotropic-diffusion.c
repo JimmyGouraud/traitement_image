@@ -111,24 +111,8 @@ static void diffusion(float* values_imd, float* values_gradient, int lambda, int
   }
 }
 
-static void process(int n, int lambda, int function, char* ims_name, char* imd_name)
-{        
-  float (*c)(int, float);
-  switch(function) {
-  case 0:
-    c = c0;
-    break;
-  case 1:
-    c = c1;
-    break;
-  case 2:
-    c = c2;
-    break;
-  default:
-    fprintf(stderr, "<n> must be between 0 and 2.\n");
-    exit(EXIT_FAILURE);
-  }
-  
+static void process(int n, int lambda, float (*c)(int, float), char* ims_name, char* imd_name)
+{  
   pnm ims = pnm_load(ims_name);
   int width = pnm_get_width(ims);
   int height = pnm_get_height(ims);
@@ -163,8 +147,24 @@ int main(int argc, char *argv[])
   if (argc != PARAM+1) {
     usage(argv[0]);
   }
-  
-  process(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), argv[4], argv[5]);
+
+  float (*c)(int, float);
+  switch(atoi(argv[3])) {
+  case 0:
+    c = c0;
+    break;
+  case 1:
+    c = c1;
+    break;
+  case 2:
+    c = c2;
+    break;
+  default:
+    fprintf(stderr, "<n> must be between 0 and 2.\n");
+    exit(EXIT_FAILURE);
+  }
+    
+  process(atoi(argv[1]), atoi(argv[2]), c, argv[4], argv[5]);
 
   return EXIT_SUCCESS;
 }

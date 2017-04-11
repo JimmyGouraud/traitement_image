@@ -15,8 +15,6 @@ BIN=	heat-equation\
 all: $(BIN)
 
 butterworth: fft.o
-nlmeans: nl-means.c
-	gcc $(CFLAGS) $(LDFLAGS) nl-means.c $(LDLIBS) -o nlmeans
 
 clean:
 	$(RM) $(OBJ) $(BIN) *.ppm

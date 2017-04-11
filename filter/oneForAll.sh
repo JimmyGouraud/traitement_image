@@ -3,6 +3,8 @@
 ims1='../data/barbara.ppm'
 ims2='../data/barbara-impulse.ppm'
 ims3='../data/barbara-gaussian-10.ppm'
+ims4='../data/lena-gray.ppm'
+ims5='../data/lena-sin.ppm'
 
 # heat-equation <n> <ims> <imd>
 ./heat-equation 10 $ims1 heat-equation-10.ppm; pvisu heat-equation-10.ppm;
@@ -23,9 +25,16 @@ ims3='../data/barbara-gaussian-10.ppm'
 ./bilateral 3  30  $ims1 bilateral-3-30.ppm;   pvisu bilateral-3-30.ppm;
 ./bilateral 3  100 $ims1 bilateral-3-100.ppm;  pvisu bilateral-3-100.ppm;
 ./bilateral 10 30  $ims1 bilateral-10-30.ppm;  pvisu bilateral-10-30.ppm;
-./bilateral 10 100 $ims1 bilateral-100-30.ppm; pvisu bilateral-10-100.ppm;
+./bilateral 10 100 $ims1 bilateral-10-100.ppm; pvisu bilateral-10-100.ppm;
 
 ## nlmeans <sigma> <ims> <imd>
 ./nlmeans 5 $ims1 nlmeans-5.ppm; pvisu nlmeans-5.ppm;
-./nlmeans 5 $ims1 nlmeans-15.ppm; pvisu nlmeans-15.ppm;
-./nlmeans 5 $ims3 nlmeans-gaussian-10.ppm; pvisu nlmeans-gaussian-10.ppm;
+./nlmeans 15 $ims1 nlmeans-15.ppm; pvisu nlmeans-15.ppm;
+./nlmeans 10 $ims3 nlmeans-gaussian-10.ppm; pvisu nlmeans-gaussian-10.ppm;
+
+# butterworth <ims> <imd> <function> <d0> <n> <w> <u0> <v0>
+./butterworth $ims4 butterworth-lp.ppm lp 32 2 0 0 0;   pvisu butterworth-lp.ppm;
+./butterworth $ims4 butterworth-hp.ppm hp 32 2 0 0 0;   pvisu butterworth-hp.ppm;
+./butterworth $ims4 butterworth-br.ppm br 128 2 64 0 0; pvisu butterworth-br.ppm;
+./butterworth $ims4 butterworth-bp.ppm bp 64 2 64 0 0;  pvisu butterworth-bp.ppm;
+./butterworth $ims5 butterworth-no.ppm no 1 2 0 0 8;    pvisu butterworth-no.ppm;
